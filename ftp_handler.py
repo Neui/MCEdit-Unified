@@ -106,5 +106,5 @@ class MCEdit_FTP_Client:
         #shutil.rmtree(directories.getDataDir()+os.path.sep+'ftp-data')
         self._ftp.quit()
         
-client = MCEdit_FTP_Client('93.188.160.76', 'u413783897', 'beng6600')
-client.stop()
+
+client.stop()  # @UndefinedVariable
