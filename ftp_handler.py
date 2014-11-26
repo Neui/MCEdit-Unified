@@ -2,7 +2,6 @@ import ftplib
 import os
 import directories
 import shutil
-import time
 
 class MCEdit_FTP_Client:
 
@@ -26,7 +25,6 @@ class MCEdit_FTP_Client:
             for item in self._ftp.nlst()[2:]:
                 self._ftp.retrbinary("RETR "+item, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+folder+os.path.sep+item, 'wb').write)
         self._ftp.cwd("..")
-        #time.sleep(10)
         pass
 
 
