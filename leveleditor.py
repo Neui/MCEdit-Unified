@@ -20,6 +20,7 @@ from raycaster import TooFarException
 import raycaster
 import keys
 import pygame
+from ftp_handler import MCEdit_FTP_Client
 
 """
 leveleditor.py
@@ -2959,6 +2960,9 @@ class LevelEditor(GLViewport):
             self.root.ctrlClicked = -1
             if answer == "Save":
                 self.saveFile()
+                if self.world_from_ftp:
+                    self._ftp_client.stop()
+                    self.world_from_ftp = False
             if answer == "Cancel":
                 return
         self.clearUnsavedEdits()
@@ -3154,6 +3158,32 @@ class LevelEditor(GLViewport):
         self.addWorker(self.renderer)
         config.settings.viewDistance.set(self.renderer.viewDistance)
 
+
+    def loadWorldFromFTP(self):
+                
+        widget = Widget()
+        
+        ftp_ip_lbl = Label("FTP Server's IP: ")
+        ftp_ip_field = TextField(width=200)
+        ip_row = Row((ftp_ip_lbl, ftp_ip_field))
+        
+        ftp_user_lbl = Label("FTP Username: ")
+        ftp_user_field = TextField(width=200)
+        user_row = Row((ftp_user_lbl, ftp_user_field))
+        
+        ftp_pass_lbl = Label("FTP Password: ")
+        ftp_pass_field = TextField(width=200)
+        pass_row = Row((ftp_pass_lbl, ftp_pass_field))
+        col = Column((ip_row, user_row, pass_row))
+        widget.add(col)
+        widget.shrink_wrap()
+        d = Dialog(widget, ["Connect", "Cancel"])
+        if d.present() == "Connect":
+            self._ftp_client = MCEdit_FTP_Client(ftp_ip_field.get_text(), ftp_user_field.get_text(), ftp_pass_field.get_text())
+            self.mcedit.loadFile(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._ftp_client.level+os.path.sep+"level.dat")
+            self.world_from_ftp = True
+    
+    
     @mceutils.alertException
     def askLoadWorld(self):
         if not os.path.isdir(directories.minecraftSaveFileDir):
@@ -3252,11 +3282,15 @@ class LevelEditor(GLViewport):
         worldPanel.add(worldTable)
         worldPanel.shrink_wrap()
 
-        d = Dialog(worldPanel, ["Load", "Cancel"])
+        d = Dialog(worldPanel, ["Load", "From FTP Server", "Cancel"])
         d.key_down = key_down
         d.key_up = key_up
-        if d.present() == "Load":
+        result = d.present()
+        if result == "Load":
             loadWorld()
+        if result == "From FTP Server":
+            print "Loading from FTP"
+            self.loadWorldFromFTP()
 
     def askOpenFile(self):
         self.mouseLookOff()

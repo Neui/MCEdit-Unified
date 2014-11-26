@@ -22,8 +22,9 @@ class MCEdit_FTP_Client:
             pass
         self._ftp.cwd(folder)
         if self._ftp.nlst()[2:] != []:
-            for item in self._ftp.nlst()[2:]:
-                self._ftp.retrbinary("RETR "+item, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+folder+os.path.sep+item, 'wb').write)
+            for item in self._ftp.nlst():
+                if item != ".." and item != "." and item != "##MCEDIT.TEMP##":
+                    self._ftp.retrbinary("RETR "+item, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+folder+os.path.sep+item, 'wb').write)
         self._ftp.cwd("..")
         pass
 
@@ -35,13 +36,14 @@ class MCEdit_FTP_Client:
             pass
         self._ftp.cwd(level)
         found = self._ftp.nlst()
-        for obj in found[2:]:
-            if "." in obj:
-                print obj
-                self._ftp.retrbinary("RETR "+obj, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+obj, 'wb').write)
-            else:
-                print obj+" is a folder"
-                self.download_folder(obj, level)
+        for obj in found:
+            if obj != ".." and obj != "." and obj != "##MCEDIT.TEMP##":
+                if "." in obj:
+                    print obj
+                    self._ftp.retrbinary("RETR "+obj, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+obj, 'wb').write)
+                else:
+                    print obj+" is a folder"
+                    self.download_folder(obj, level)
         self._ftp.cwd("..")
     
     
@@ -71,40 +73,48 @@ class MCEdit_FTP_Client:
         print os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level)
         self._ftp.cwd(self._level)
         found = self._ftp.nlst()
-        for obj in found[2:]:
-            if "." in obj:
-                print obj
-                self._ftp.delete(obj)
-            else:
-                print obj+" is a folder"
-                self.delete_folder(obj)
+        for obj in found:
+            if obj != ".." and obj != "." and obj != "##MCEDIT.TEMP##":
+                if "." in obj:
+                    print obj
+                    self._ftp.delete(obj)
+                else:
+                    print obj+" is a folder"
+                    self.delete_folder(obj)
         self._ftp.cwd("..")
         self._ftp.rmd(self._level)
         self._ftp.mkd(self._level)
         self._ftp.cwd(self._level)
         print "Uploading files...."
         for entry in os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level):
-            if os.path.isfile(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry):
-                print "Uploading "+entry
-                self._ftp.storbinary("STOR "+entry, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry, 'rb'))
-                print "Uploaded "+entry
-            else:
-                files_to_upload = os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry)
-                self._ftp.mkd(entry)
-                self._ftp.cwd(entry)
-                for f in files_to_upload:
-                    print "Uploading "+f+" to folder ("+entry+")"
-                    self._ftp.storbinary("STOR "+f, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry+
-                                                         os.path.sep+f, 'rb'))
-                    print "Uploaded "+f+" to folder ("+entry+")"
-                self._ftp.cwd("..")
+            if entry != "##MCEDIT.TEMP##":
+                if os.path.isfile(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry):
+                    print "Uploading "+entry
+                    self._ftp.storbinary("STOR "+entry, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry, 'rb'))
+                    print "Uploaded "+entry
+                else:
+                    files_to_upload = os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry)
+                    try:
+                        self._ftp.mkd(entry)
+                    except ftplib.error_perm:
+                        pass
+                    self._ftp.cwd(entry)
+                    for f in files_to_upload:
+                        if f != "##MCEDIT.TEMP##":
+                            if os.path.isfile(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry+os.path.sep+f):
+                                print "Uploading "+f+" to folder ("+entry+")"
+                                self._ftp.storbinary("STOR "+f, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry+
+                                                                     os.path.sep+f, 'rb'))
+                                print "Uploaded "+f+" to folder ("+entry+")"
+                            else:
+                                self._ftp.mkd(f)
+                            self._ftp.cwd("..")
                 
-    
+    @property   
+    def level(self):
+        return self._level
     
     def stop(self):
         self.upload_changes()
         #shutil.rmtree(directories.getDataDir()+os.path.sep+'ftp-data')
         self._ftp.quit()
-        
-
-client.stop()  # @UndefinedVariable
