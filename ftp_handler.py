@@ -23,10 +23,11 @@ class MCEdit_FTP_Client:
         self._ftp.cwd(folder)
         if self._ftp.nlst()[2:] != []:
             for item in self._ftp.nlst():
-                if item != ".." and item != "." and item != "##MCEDIT.TEMP##":
+                if item != ".." and item != "." and item != "##MCEDIT.TEMP##" and "." in item:
                     self._ftp.retrbinary("RETR "+item, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+level+os.path.sep+folder+os.path.sep+item, 'wb').write)
+                elif item != ".." and item != "." and item != "##MCEDIT.TEMP##":
+                    self.download_folder(item, level)
         self._ftp.cwd("..")
-        pass
 
 
     def getWorld(self, level):
@@ -54,6 +55,8 @@ class MCEdit_FTP_Client:
             pass
 
         self._ftp = ftplib.FTP(address, username, password)
+        self._base_dir = self._ftp.pwd()
+        print self._base_dir
         for f in self._ftp.nlst():
             if f == "server.properties":
                 self._ftp.retrlines("RETR server.properties", open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+'server.properties', 'wb').write)
@@ -63,9 +66,17 @@ class MCEdit_FTP_Client:
                 
     def delete_folder(self, folder):
         self._ftp.cwd(folder)
-        files = self._ftp.nlst()[2:]
+        files = self._ftp.nlst()
+        print folder+": "+str(files)
         for f in files:
-            self._ftp.delete(f)
+            if f != ".." and f != "." and f != "##MCEDIT.TEMP##":
+                if "." in f:
+                    self._ftp.delete(f)
+                else:
+                    self.delete_folder(f)
+            if f == "##MCEDIT.TEMP##":
+                self._ftp.rmd(f)
+        print "Line 79: "+self._ftp.pwd()
         self._ftp.cwd("..")
         self._ftp.rmd(folder)
 
@@ -73,6 +84,7 @@ class MCEdit_FTP_Client:
         print os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level)
         self._ftp.cwd(self._level)
         found = self._ftp.nlst()
+        print "Found: "+str(found)
         for obj in found:
             if obj != ".." and obj != "." and obj != "##MCEDIT.TEMP##":
                 if "." in obj:
@@ -81,10 +93,9 @@ class MCEdit_FTP_Client:
                 else:
                     print obj+" is a folder"
                     self.delete_folder(obj)
-        self._ftp.cwd("..")
-        self._ftp.rmd(self._level)
-        self._ftp.mkd(self._level)
-        self._ftp.cwd(self._level)
+            if obj == "##MCEDIT.TEMP##":
+                self._ftp.rmd(obj)
+        print "Files left: "+str(self._ftp.nlst())
         print "Uploading files...."
         for entry in os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level):
             if entry != "##MCEDIT.TEMP##":
@@ -92,11 +103,13 @@ class MCEdit_FTP_Client:
                     print "Uploading "+entry
                     self._ftp.storbinary("STOR "+entry, open(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry, 'rb'))
                     print "Uploaded "+entry
+                    print "After uploading ("+entry+"): "+str(self._ftp.nlst())
                 else:
                     files_to_upload = os.listdir(directories.getDataDir()+os.path.sep+'ftp-data'+os.path.sep+self._level+os.path.sep+entry)
                     try:
                         self._ftp.mkd(entry)
-                    except ftplib.error_perm:
+                    except ftplib.error_perm as e:
+                        print 'Error: {0}'.format(e.message)
                         pass
                     self._ftp.cwd(entry)
                     for f in files_to_upload:
@@ -107,8 +120,12 @@ class MCEdit_FTP_Client:
                                                                      os.path.sep+f, 'rb'))
                                 print "Uploaded "+f+" to folder ("+entry+")"
                             else:
-                                self._ftp.mkd(f)
-                            self._ftp.cwd("..")
+                                self._ftp.cwd("..")
+                                if f not in self._ftp.nlst():
+                                    self._ftp.mkd(f)
+                                self._ftp.cwd(entry)
+                                print "Line 126: "+self._ftp.pwd()
+                                self._ftp.cwd("..")
                 
     @property   
     def level(self):
