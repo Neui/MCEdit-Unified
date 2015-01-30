@@ -602,7 +602,7 @@ class LevelEditor(GLViewport):
         tableBacking.shrink_wrap()
 
         def saveToFile():
-            dt = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            dt = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
             filename = askSaveFile(directories.docsFolder,
                                    title='Save analysis...',
                                    defaultName=self.level.displayName + "_analysis_" + dt + ".txt",
@@ -1824,6 +1824,8 @@ class LevelEditor(GLViewport):
             display.set_caption("MCEdit ~ " + release.get_version())
     
             self._ftp_client.cleanup()
+        else:
+            alert("This world was not downloaded from a FTP server. Uploading worlds that were not downloaded from a FTP server is currently not possible")
 
     def repairRegions(self):
         worldFolder = self.level.worldFolder

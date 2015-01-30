@@ -63,10 +63,13 @@
 #   name: The name that will show up in X-Ray if you're using it
 #         as one of your highlights (unimportant otherwise)
 #
-# * aka:  Also known as. Alternate names or keywords to be used when searching
+# * aka:  Also known as. Alternate names for blocks that can also be used when searching
 #         for a block by name. This field is also used as a hint when converting
 #         blocks between level formats: The names of the source level's blocks
 #         are matched against both the name and aka of the destination level's.
+#
+# * search:  Hidden words to be used when searching in the block picker. These
+#            words will be completely hidden to the user.
 #
 # * brightness: Light level produced by the block. Default is 0 (no light)
 #
@@ -269,19 +272,22 @@ blocks:
         name: Granite
         tex: [4, 16]
       2:
-        name: Polished Granite [Smooth]
+        name: Polished Granite
+        search: smooth
         tex: [5, 16]
       3:
         name: Diorite
         tex: [6, 16]
       4:
-        name: Polished Diorite [Smooth]
+        name: Polished Diorite
+        search: smooth
         tex: [7, 16]
       5:
         name: Andesite
         tex: [8, 16]
       6:
-        name: Polished Andesite [Smooth]
+        name: Polished Andesite
+        search: smooth
         tex: [9, 16]
         
   - id: 2
@@ -393,7 +399,7 @@ blocks:
   - id: 7
     idStr: bedrock
     name: Bedrock
-    aka: Adminium
+    search: Adminium
     mapcolor: [84, 84, 84]
     tex: [1, 1]
 
@@ -603,11 +609,12 @@ blocks:
   - id: 17
     idStr: log
     name: Wood
+    search: log
     mapcolor: [102, 81, 51]
     tex: [4, 1]
     data:
       0:
-        name: Oak Wood (Upright) [Log]
+        name: Oak Wood (Upright)
         variant: Oak
         axis: x
         tex: [4, 1]
@@ -615,78 +622,78 @@ blocks:
           TOP: [5, 1]
           BOTTOM: [5, 1]
       1:
-        name: Spruce Wood (Upright) [Log]
+        name: Spruce Wood (Upright)
         tex: [4, 7]
         tex_direction:
           TOP: [9, 14]
           BOTTOM: [9, 14]
       2:
-        name: Birch Wood (Upright) [Log]
+        name: Birch Wood (Upright)
         tex: [5, 7]
         tex_direction:
           TOP: [10, 14]
           BOTTOM: [10, 14]
       3:
-        name: Jungle Wood (Upright) [Log]
+        name: Jungle Wood (Upright)
         tex: [9, 9]
         tex_direction:
           TOP: [11, 14]
           BOTTOM: [11, 14]
       4:
-        name: Oak Wood (East/West) [Log]
+        name: Oak Wood (East/West)
         tex: [4, 1]
         tex_direction:
           SIDES: [5, 1]
       5:
-        name: Spruce Wood (East/West) [Log]
+        name: Spruce Wood (East/West)
         tex: [4, 7]
         tex_direction:
           SIDES: [9, 14]
       6:
-        name: Birch Wood (East/West) [Log]
+        name: Birch Wood (East/West)
         tex: [5, 7]
         tex_direction:
           SIDES: [10, 14]
       7:
-        name: Jungle Wood (East/West) [Log]
+        name: Jungle Wood (East/West)
         tex: [9, 9]
         tex_direction:
           SIDES: [11, 14]
       8:
-        name: Oak Wood (North/South) [Log]
+        name: Oak Wood (North/South)
         tex: [4, 1]
         tex_direction:
           FORWARD: [11, 14]
           BACKWARD: [11, 14]
       9:
-        name: Spruce Wood (North/South) [Log]
+        name: Spruce Wood (North/South)
         tex: [4, 7]
         tex_direction:
           FORWARD: [9, 14]
           BACKWARD: [9, 14]
       10:
-        name: Birch Wood (North/South) [Log]
+        name: Birch Wood (North/South)
         tex: [5, 7]
         tex_direction:
           FORWARD: [10, 14]
           BACKWARD: [10, 14]
       11:
-        name: Jungle Wood (North/South) [Log]
+        name: Jungle Wood (North/South)
         tex: [9, 9]
         tex_direction:
           FORWARD: [11, 14]
           BACKWARD: [11, 14]
       12:
-        name: Oak Wood (Bark Only) [Log]
+        name: Oak Wood (Bark Only)
         tex: [4, 1]
       13:
-        name: Spruce Wood (Bark Only) [Log]
+        name: Spruce Wood (Bark Only)
         tex: [4, 7]
       14:
-        name: Birch Wood (Bark Only) [Log]
+        name: Birch Wood (Bark Only)
         tex: [5, 7]
       15:
-        name: Jungle Wood (Bark Only) [Log]
+        name: Jungle Wood (Bark Only)
         tex: [9, 9]
 
   - id: 18
@@ -896,6 +903,7 @@ blocks:
   - id: 25
     idStr: noteblock
     name: Note Block
+    search: noteblock
     mapcolor: [114, 88, 56]
     tex: [10, 4]
 
@@ -1018,7 +1026,7 @@ blocks:
   - id: 27
     idStr: golden_rail
     name: Powered Rail
-    aka: Golden
+    search: golden
     mapcolor: [120, 53, 28]
     tex: [3, 10]
     type: SIMPLE_RAIL
@@ -1223,10 +1231,11 @@ blocks:
       0:
         tex: [7, 3]
         name: Dead Bush (Drops Seeds)
-        aka: Shrub
+        search: shrub
       1:
         tex: [7, 2]
-        name: Grass [Tall]
+        name: Grass
+        search: tall
       2:
         tex: [8, 3]
         name: Fern
@@ -1236,7 +1245,7 @@ blocks:
   - id: 32
     idStr: deadbush
     name: Dead Bush
-    aka: Shrub
+    search: shrub
     mapcolor: [148, 100, 40]
     tex: [7, 3]
     type: DECORATION_CROSS
@@ -1432,10 +1441,12 @@ blocks:
       7:
         tex: [2, 7]
         name: Gray Wool
+        search: grey
         mapcolor: [66, 66, 66]
       8:
         tex: [1, 14]
         name: Light Gray Wool
+        search: grey
         mapcolor: [166, 166, 166]
       9:
         tex: [1, 13]
@@ -1502,7 +1513,7 @@ blocks:
   - id: 37
     idStr: yellow_flower
     name: Dandelion
-    aka: Flower, Yellow
+    search: flower, yellow
     mapcolor: [255, 255, 0]
     tex: [13, 0]
     type: DECORATION_CROSS
@@ -1510,8 +1521,6 @@ blocks:
 
   - id: 38
     idStr: red_flower
-    name: Flower
-    aka: Flower, Red
     mapcolor: [255, 0, 0]
     tex: [12, 0]
     type: DECORATION_CROSS
@@ -1519,38 +1528,39 @@ blocks:
     data:
       0:
         name: Poppy
-        aka: Flower, Red
+        search: flower, red
       1:
         name: Blue Orchid
-        aka: Flower
+        search: flower
         tex: [16, 0]
       2:
         name: Allium
-        aka: Flower
+        search: flower
         tex: [17, 0]
       3:
         name: Azure Bluet
-        aka: Flower, Houstonia
+        aka: Houstonia
+        search: flower
         tex: [18, 0]
       4:
         name: Red Tulip
-        aka: Flower
+        search: flower
         tex: [19, 0]
       5:
         name: Orange Tulip
-        aka: Flower
+        search: flower
         tex: [16, 1]
       6:
         name: White Tulip
-        aka: Flower
+        search: flower
         tex: [17, 1]
       7:
         name: Pink Tulip
-        aka: Flower
+        search: flower
         tex: [18, 1]
       8:
         name: Oxeye Daisy
-        aka: Flower
+        search: flower
         tex: [19, 1]
 
   - id: 39
@@ -1600,7 +1610,8 @@ blocks:
           TOP: [0, 11]
           BOTTOM: [0, 13]
       2:
-        name: Wooden Double Slab (Seamed) [Old Wood]
+        name: Wooden Double Slab (Seamed)
+        aka: Old Wood
         tex: [4, 0]
       3:
         name: Cobblestone Double Slab (Seamed)
@@ -1624,7 +1635,8 @@ blocks:
         name: Sandstone Double Slab (Seamless)
         tex: [0, 11]
       10:
-        name: Wooden Double Slab (Seamless) [Old Wood]
+        name: Wooden Double Slab (Seamless)
+        aka: Old Wood
         tex: [4, 0]
       11:
         name: Cobblestone Double Slab (Seamless)
@@ -1660,7 +1672,8 @@ blocks:
           TOP: [0, 11]
           BOTTOM: [0, 13]
       2:
-        name: Wooden Slab (Bottom) [Old Wood]
+        name: Wooden Slab (Bottom)
+        aka: Old Wood
         tex: [4, 0]
       3:
         name: Cobblestone Slab (Bottom)
@@ -1690,7 +1703,8 @@ blocks:
           TOP: [0, 11]
           BOTTOM: [0, 13]
       10:
-        name: Wooden Slab (Top) [Old Wood]
+        name: Wooden Slab (Top)
+        aka: Old Wood
         tex: [4, 0]
       11:
         name: Cobblestone Slab (Top)
@@ -1745,7 +1759,7 @@ blocks:
   - id: 48
     idStr: mossy_cobblestone
     name: Moss Stone
-    aka: Mossy Cobblestone
+    search: mossy, cobblestone
     mapcolor: [115, 169, 115]
     tex: [4, 2]
 
@@ -1819,7 +1833,7 @@ blocks:
   - id: 52
     idStr: mob_spawner
     name: Monster Spawner
-    aka: Mob Spawner
+    search: mob
     mapcolor: [25, 82, 122]
     tex: [1, 4]
     type: SEMISOLID
@@ -1885,7 +1899,7 @@ blocks:
   - id: 55
     idStr: redstone_wire
     name: Redstone Dust
-    aka: Wire
+    search: wire
     mapcolor: [245, 50, 50]
     tex: [4, 10]
     type: FLOOR
@@ -1939,7 +1953,7 @@ blocks:
   - id: 58
     idStr: crafting_table
     name: Crafting Table
-    aka: Workbench
+    search: workbench
     mapcolor: [114, 88, 56]
     tex: [12, 3]
     tex_direction:
@@ -1950,7 +1964,7 @@ blocks:
   - id: 59
     idStr: wheat
     name: Wheat
-    aka: Crops
+    search: crops
     mapcolor: [146, 192, 0]
     tex: [15, 5]
     type: CROPS
@@ -1984,7 +1998,7 @@ blocks:
   - id: 60
     idStr: farmland
     name: Farmland
-    aka: Tilled
+    search: tilled
     mapcolor: [95, 58, 30]
     tex: [2, 0]
     tex_direction:
@@ -2170,7 +2184,7 @@ blocks:
   - id: 66
     idStr: rail
     name: Rail
-    aka: Minecart Track
+    search: minecart, track
     mapcolor: [150, 134, 102]
     tex: [0, 8]
     type: MINECART_TRACKS
@@ -2380,6 +2394,7 @@ blocks:
   - id: 76
     idStr: redstone_torch
     name: Redstone Torch (On)
+    search: lit
     mapcolor: [255, 0, 0]
     tex: [3, 6]
     type: TORCH
@@ -2388,15 +2403,15 @@ blocks:
     brightness: 7
     data:
       1:
-        name: Redstone Torch (East) [Lit]
+        name: Redstone Torch (East)
       2:
-        name: Redstone Torch (West) [Lit]
+        name: Redstone Torch (West)
       3:
-        name: Redstone Torch (South) [Lit]
+        name: Redstone Torch (South)
       4:
-        name: Redstone Torch (North) [Lit]
+        name: Redstone Torch (North)
       5:
-        name: Redstone Torch (Up) [Lit]
+        name: Redstone Torch (Up)
 
   - id: 77
     idStr: stone_button
@@ -2521,7 +2536,7 @@ blocks:
 
   - id: 83
     idStr: reeds
-    aka: Reeds, Papyrus
+    search: reeds, papyrus
     mapcolor: [100, 67, 50]
     tex: [9, 4]
     type: DECORATION_CROSS
@@ -2622,7 +2637,7 @@ blocks:
   - id: 88
     idStr: soul_sand
     name: Soul Sand
-    aka: Slow Sand
+    search: slow
     mapcolor: [106, 82, 68]
     tex: [8, 6]
 
@@ -2651,7 +2666,7 @@ blocks:
   - id: 91
     idStr: lit_pumpkin
     name: Jack o'Lantern
-    aka: Lit Pumpkin
+    search: lit pumpkin
     mapcolor: [249, 255, 58]
     explored: true
     tex: [6, 7]
@@ -2889,10 +2904,12 @@ blocks:
         mapcolor: [217, 131, 155]
       7:
         name: Gray Stained Glass
+        search: grey
         tex: [7, 19]
         mapcolor: [66, 66, 66]
       8:
         name: Light Gray Stained Glass
+        search: grey
         tex: [8, 19]
         mapcolor: [166, 166, 166]
       9:
@@ -2970,7 +2987,7 @@ blocks:
   - id: 97
     idStr: monster_egg
     name: Monster Egg
-    aka: Silverfish Block
+    search: silverfish, block
     mapcolor: [120, 120, 120]
     tex: [1, 0]
     data:
@@ -3015,6 +3032,7 @@ blocks:
   - id: 99
     idStr: brown_mushroom_block
     name: Brown Mushroom Block
+    search: huge
     mapcolor: [145, 109, 85]
     tex: [14, 7]
     type: HUGE_MUSHROOM
@@ -3027,26 +3045,97 @@ blocks:
         tex: [14, 8]
       1:
         name: Brown Mushroom Block (Northwest)
+        tex_direction:
+          FORWARD: [14, 7]
+          BACKWARD: [14, 8]
+          LEFT: [14, 7]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       2:
         name: Brown Mushroom Block (North)
+        tex_direction:
+          FORWARD: [14, 7]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       3:
         name: Brown Mushroom Block (Northeast)
+        tex_direction:
+          FORWARD: [14, 7]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 7]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       4:
         name: Brown Mushroom Block (West)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [14, 7]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       5:
         name: Brown Mushroom Block (Center)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       6:
         name: Brown Mushroom Block (East)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 7]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       7:
         name: Brown Mushroom Block (Southwest)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 7]
+          LEFT: [14, 7]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       8:
         name: Brown Mushroom Block (South)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 7]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       9:
         name: Brown Mushroom Block (Southeast)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 7]
+          LEFT: [14, 8]
+          RIGHT: [14, 7]
+          TOP: [14, 7]
+          BOTTOM: [14, 8]
       10:
         name: Brown Mushroom Block (Stem)
+        tex_direction:
+          FORWARD: [13, 8]
+          BACKWARD: [13, 8]
+          LEFT: [13, 8]
+          RIGHT: [13, 8]
+          TOP: [14, 8]
+          BOTTOM: [14, 8]
       14:
         name: Brown Mushroom Block (All Outside)
+        tex: [14, 7]
       15:
         name: Brown Mushroom Block (All Stem)
         tex: [13, 8]
@@ -3054,6 +3143,7 @@ blocks:
   - id: 100
     idStr: red_mushroom_block
     name: Red Mushroom Block
+    search: huge
     mapcolor: [181, 29, 27]
     tex: [13, 7]
     type: HUGE_MUSHROOM
@@ -3066,26 +3156,97 @@ blocks:
         tex: [14, 8]
       1:
         name: Red Mushroom Block (Northwest)
+        tex_direction:
+          FORWARD: [13, 7]
+          BACKWARD: [14, 8]
+          LEFT: [13, 7]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       2:
         name: Red Mushroom Block (North)
+        tex_direction:
+          FORWARD: [13, 7]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       3:
         name: Red Mushroom Block (Northeast)
+        tex_direction:
+          FORWARD: [13, 7]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [13, 7]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       4:
         name: Red Mushroom Block (West)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [13, 7]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       5:
         name: Red Mushroom Block (Center)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       6:
         name: Red Mushroom Block (East)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [14, 8]
+          LEFT: [14, 8]
+          RIGHT: [13, 7]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       7:
         name: Red Mushroom Block (Southwest)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [13, 7]
+          LEFT: [13, 7]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       8:
         name: Red Mushroom Block (South)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [13, 7]
+          LEFT: [14, 8]
+          RIGHT: [14, 8]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       9:
         name: Red Mushroom Block (Southeast)
+        tex_direction:
+          FORWARD: [14, 8]
+          BACKWARD: [13, 7]
+          LEFT: [14, 8]
+          RIGHT: [13, 7]
+          TOP: [13, 7]
+          BOTTOM: [14, 8]
       10:
         name: Red Mushroom Block (Stem)
+        tex_direction:
+          FORWARD: [13, 8]
+          BACKWARD: [13, 8]
+          LEFT: [13, 8]
+          RIGHT: [13, 8]
+          TOP: [14, 8]
+          BOTTOM: [14, 8]
       14:
         name: Red Mushroom Block (All Outside)
+        tex: [13, 7]
       15:
         name: Red Mushroom Block (All Stem)
         tex: [13, 8]
@@ -3115,7 +3276,7 @@ blocks:
   - id: 103
     idStr: melon_block
     name: Melon
-    aka: Watermelon, Block
+    search: watermelon, block
     mapcolor: [190, 184, 41]
     tex: [8, 8]
     tex_direction:
@@ -3152,7 +3313,7 @@ blocks:
   - id: 105
     idStr: melon_stem
     name: Melon Stem
-    aka: Watermelon
+    search: watermelon
     mapcolor: [190, 184, 41]
     tex: [15, 6]
     type: STEM
@@ -3319,7 +3480,7 @@ blocks:
   - id: 111
     idStr: waterlily
     name: Lily Pad
-    aka: Waterlily
+    search: waterlily
     mapcolor: [117, 176, 73]
     tex: [12, 4]
     type: FLOOR
@@ -3387,7 +3548,7 @@ blocks:
   - id: 116
     idStr: enchanting_Table
     name: Enchantment Table
-    aka: Enchanting
+    search: enchanting
     mapcolor: [88, 23, 22]
     tex: [6, 11]
     type: ENCHANTMENT_TABLE
@@ -3505,7 +3666,7 @@ blocks:
   - id: 122
     idStr: dragon_egg
     name: Dragon Egg
-    aka: Ender Dragon Egg
+    search: ender
     mapcolor: [45, 1, 51]
     tex: [7, 10]
     brightness: 1
@@ -3520,7 +3681,7 @@ blocks:
   - id: 124
     idStr: lit_redstone_lamp
     name: Redstone Lamp (On)
-    aka: Lit
+    search: lit
     mapcolor: [208, 152, 70]
     tex: [4, 13]
     brightness: 15
@@ -4030,7 +4191,7 @@ blocks:
   - id: 144
     idStr: skull
     name: Mob Head
-    aka: Skull
+    search: skull
     mapcolor: [200, 100, 100]
     tex: [2, 15]
     opacity: 0
@@ -4393,7 +4554,7 @@ blocks:
   - id: 151
     idStr: daylight_detector
     name: Daylight Sensor
-    aka: Detector
+    search: detector
     mapcolor: [255, 100, 255]
     tex: [20,2]
     tex_direction:
@@ -4691,7 +4852,6 @@ blocks:
 
   - id: 159
     idStr: stained_hardened_clay
-    name: Stained Clay
     mapcolor: [150, 100, 50]
     data:
       0:
@@ -4724,10 +4884,12 @@ blocks:
         mapcolor: [217, 131, 155]
       7:
         name: Gray Stained Clay
+        search: grey
         tex: [7, 18]
         mapcolor: [66, 66, 66]
       8:
         name: Light Gray Stained Clay
+        search: grey
         tex: [8, 18]
         mapcolor: [166, 166, 166]
       9:
@@ -4816,6 +4978,7 @@ blocks:
         mapcolor: [217, 131, 155]
       7:
         name: Gray Stained Glass Pane
+        search: grey
         tex: [7, 19]
         tex_direction:
             TOP: [7, 17]
@@ -4823,6 +4986,7 @@ blocks:
         mapcolor: [66, 66, 66]
       8:
         name: Light Gray Stained Glass Pane
+        search: grey
         tex: [8, 19]
         tex_direction:
             TOP: [8, 17]
@@ -4921,48 +5085,49 @@ blocks:
   - id: 162
     idStr: log2
     name: Wood (Acacia/Dark Oak)
+    search: log
     mapcolor: [102, 81, 51]
     tex: [3, 15]
     data:
       0:
-        name: Acacia Wood (Upright, Acacia) [Log]
+        name: Acacia Wood (Upright, Acacia)
         tex: [3, 15]
         tex_direction:
           TOP: [13, 13]
           BOTTOM: [13, 13]
       1:
-        name: Dark Oak Wood (Upright, Dark Oak) [Log]
+        name: Dark Oak Wood (Upright, Dark Oak)
         tex: [4, 15]
         tex_direction:
           TOP: [12, 14]
           BOTTOM: [12, 14]
       4:
-        name: Acacia Wood (East/West, Acacia) [Log]
+        name: Acacia Wood (East/West, Acacia)
         tex: [3, 15]
         tex_direction:
           SIDES: [13, 13]
       5:
-        name: Dark Oak Wood (East/West, Dark Oak) [Log]
+        name: Dark Oak Wood (East/West, Dark Oak)
         tex: [4, 15]
         tex_direction:
           SIDES: [12, 14]
       8:
-        name: Acacia Wood (North/South, Acacia) [Log]
+        name: Acacia Wood (North/South, Acacia)
         tex: [3, 15]
         tex_direction:
           FORWARD: [13, 13]
           BACKWARD: [13, 13]
       9:
-        name: Dark Oak Wood (North/South, Dark Oak) [Log]
+        name: Dark Oak Wood (North/South, Dark Oak)
         tex: [4, 15]
         tex_direction:
           FORWARD: [12, 14]
           BACKWARD: [12, 14]
       12:
-        name: Acacia Wood (Bark Only, Acacia) [Log]
+        name: Acacia Wood (Bark Only, Acacia)
         tex: [3, 15]
       13:
-        name: Dark Oak Wood (Bark Only, Dark Oak) [Log]
+        name: Dark Oak Wood (Bark Only, Dark Oak)
         tex: [4, 15]
         
   - id: 163
@@ -5022,6 +5187,7 @@ blocks:
   - id: 166
     idStr: barrier
     name: Barrier
+    search: block
     mapcolor: [255, 255, 255]
     tex: [10, 1]
     type: GLASS
@@ -5151,10 +5317,12 @@ blocks:
       7:
         tex: [2, 7]
         name: Gray Carpet
+        search: grey
         mapcolor: [66, 66, 66]
       8:
         tex: [1, 14]
         name: Light Gray Carpet
+        search: grey
         mapcolor: [166, 166, 166]
       9:
         tex: [1, 13]
@@ -5286,7 +5454,8 @@ blocks:
     
   - id: 177
     idStr: wall_banner
-    name: Wall-Mounted Banner
+    name: Wall Banner
+    search: mount, mounted
     mapcolor: [20, 20, 20]
     tex: [19, 3]
     opacity: 0
@@ -5303,7 +5472,7 @@ blocks:
   - id: 178
     idStr: daylight_detector_inverted
     name: Daylight Sensor Inverted
-    aka: Detector
+    search: detector
     mapcolor: [255, 100, 255]
     tex: [20,2]
     tex_direction:
