@@ -5,7 +5,8 @@
 import locale
 from pygame import draw
 import pygame
-from pygame.locals import K_LEFT, K_RIGHT, K_TAB, K_c, K_v, SCRAP_TEXT, K_UP, K_DOWN, K_RALT, K_LALT
+from pygame.locals import K_LEFT, K_RIGHT, K_TAB, K_c, K_v, SCRAP_TEXT, K_UP, K_DOWN, K_RALT, K_LALT, \
+    K_BACKSPACE, K_DELETE
 from widget import Widget, overridable_property
 from controls import Control
 from config import config
@@ -72,7 +73,7 @@ class TextEditor(Widget):
             except ValueError:
                 c = ""
             if k != K_DOWN and k != K_UP:
-                if self.insert_char(c) != 'pass':
+                if self.insert_char(c, k) != 'pass':
                     return
         if event.cmd and event.unicode:
             if event.key == K_c:
@@ -118,16 +119,16 @@ class TextEditor(Widget):
             i = max(0, min(i + d, len(text)))
         self.insertion_point = i
 
-    def insert_char(self, c):
+    def insert_char(self, c, k=None):
         if self.upper:
             c = c.upper()
-        if c == "\x08" or c == "\x7f":
+        if k == K_BACKSPACE or k == K_DELETE:
             text, i = self.get_text_and_insertion_point()
             if i is None:
                 text = ""
                 i = 0
             else:
-                if c == "\x08":
+                if k == K_BACKSPACE:
                     text = text[:i - 1] + text[i:]
                     i -= 1
                 else:
@@ -659,7 +660,7 @@ class TextEditorWrapped(Widget):
                 c = event.unicode
             except ValueError:
                 c = ""
-            if self.insert_char(c) != 'pass':
+            if self.insert_char(c, k) != 'pass':
                 return
         if event.cmd and event.unicode:
             if event.key == K_c:
@@ -698,8 +699,6 @@ class TextEditorWrapped(Widget):
                     #print repr(t)
             else:
                 self.attention_lost()
-
-        self.call_parent_handler('key_down', event)
 
     def key_up(self, event):
         pass
@@ -817,11 +816,11 @@ class TextEditorWrapped(Widget):
                 self.insertion_point = 0
                 self.insertion_step = 0
 
-    def insert_char(self, c):
+    def insert_char(self, c, k=None):
         if self.upper:
             c = c.upper()
         if c <= u"\xff":
-            if c == "\x08" or c == "\x7f":
+            if k == K_BACKSPACE or k == K_DELETE:
                 text, i = self.get_text_and_insertion_point()
                 if i is None and (self.selection_start is None or self.selection_end is None):
                     text = ""
@@ -835,7 +834,7 @@ class TextEditorWrapped(Widget):
                     self.selection_start = None
                     self.selection_end = None
                 elif i > 0:
-                    if c == "\x08":
+                    if k == K_BACKSPACE:
                         text = text[:i - 1] + text[i:]
                         i -= 1
                     else:
