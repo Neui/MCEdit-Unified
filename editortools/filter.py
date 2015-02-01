@@ -36,6 +36,7 @@ import shutil
 import directories
 import sys
 import mceutils
+import keys
 #-#
 from nbtexplorer import NBTExplorerToolPanel
 #-#
@@ -81,6 +82,7 @@ class FilterModuleOptions(Widget):
 
     def __init__(self, tool, module, *args, **kw):
         self._parent = None
+        self.module = module
         if '_parent' in kw.keys():
             self._parent = kw.pop('_parent')
         Widget.__init__(self, *args, **kw)
@@ -252,6 +254,10 @@ class FilterModuleOptions(Widget):
             #-#
             elif type(optionType) == list and optionType[0].lower() == "nbttree":
                 self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=optionType[1], height=max_height, no_header=True)
+                self.module.set_tree(self.nbttree.tree)
+                for meth_name in dir(self.module):
+                    if meth_name.startswith('nbttree_'):
+                        setattr(self.nbttree.tree.treeRow, meth_name.split('nbttree_')[-1], getattr(self.module, meth_name))
                 page.optionDict[optionName] = AttrRef(self, 'rebuildTabPage')
                 rows.append(self.nbttree)
                 self.nbttree.page = len(self.pgs)
@@ -327,8 +333,12 @@ class FilterToolPanel(Panel):
             if name.startswith("[Macro]"):
                 name = name.replace("[Macro]", "")
             tool.names_list.append(name)
-        if os.path.exists(os.path.join(directories.getCacheDir(), "macros.json")):
-            self.macro_json = json.load(open(os.path.join(directories.getCacheDir(), "macros.json"), 'rb'))
+        if os.path.exists(os.path.join(directories.getDataDir(), "filters.json")):
+            self.macro_json = json.load(open(os.path.join(directories.getDataDir(), "filters.json"), 'rb'))
+            if "Macros" not in self.macro_json:
+                self.macro_json["Macros"] = {}
+                with open(os.path.join(directories.getDataDir(), "filters.json"), 'w') as f:
+                    json.dump(self.macro_json, f)
             for saved_macro in self.macro_json["Macros"].keys():
                 name = "[Macro] "+saved_macro
                 tool.names_list.append(name)
@@ -338,10 +348,16 @@ class FilterToolPanel(Panel):
         if not self._recording:
             self.macro_button = Button("Record a Macro", action=self.start_record_macro)
 
+        if self.selectedFilterName.lower() in config.config._sections["Filter Keys"]:
+            binding_button_tooltiptext = config.config._sections["Filter Keys"][self.selectedFilterName.lower()]
+        else:
+            binding_button_tooltiptext = "Click to bind opening this filter to a hotkey"
+        self.binding_button = Button("*", action=self.bind_key, tooltipText=binding_button_tooltiptext)
+
         filterLabel = Label("Filter:", fg_color=(177, 177, 255, 255))
         filterLabel.mouse_down = lambda x: mcplatform.platform_open(directories.getFiltersDir())
         filterLabel.tooltipText = "Click to open filters folder"
-        self.filterSelectRow = filterSelectRow = Row((filterLabel, self.filterSelect, self.macro_button))
+        self.filterSelectRow = filterSelectRow = Row((filterLabel, self.filterSelect, self.macro_button, self.binding_button))
         
         if not self._recording:
             self.confirmButton = Button("Filter", action=self.tool.confirm)
@@ -432,13 +448,11 @@ class FilterToolPanel(Panel):
         self.macro_button.action = self.start_record_macro
         self._recording = False
         if self._save_macro:
-            if os.path.exists(os.path.join(directories.getCacheDir(), "macros.json")):
+            if os.path.exists(os.path.join(directories.getDataDir(), "filters.json")):
                 try:
-                    macro_dict = json.load(open(os.path.join(directories.getCacheDir(), "macros.json"), 'rb'))
+                    macro_dict = json.load(open(os.path.join(directories.getDataDir(), "filters.json"), 'rb'))
                 except ValueError:
                     macro_dict = {"Macros": {}}
-            else:
-                macro_dict = {"Macros": {}}
             macro_dict["Macros"][macroNameField.get_text()] = {}
             macro_dict["Macros"][macroNameField.get_text()]["Number of steps"] = len(self.macro_steps)
             for entry in self.macro_steps:
@@ -446,7 +460,7 @@ class FilterToolPanel(Panel):
                     if isinstance(entry["Inputs"][inp], pymclevel.materials.Block) or entry["Inputs"][inp] == "blocktype":
                         entry["Inputs"][inp] = "block-"+str(entry["Inputs"][inp].ID)+":"+str(entry["Inputs"][inp].blockData)
                 macro_dict["Macros"][macroNameField.get_text()][entry["Step"]] = {"Name":entry["Name"],"Inputs":entry["Inputs"]}
-            with open(os.path.join(directories.getCacheDir(), "macros.json"), 'w') as f:
+            with open(os.path.join(directories.getDataDir(), "filters.json"), 'w') as f:
                 json.dump(macro_dict, f)
         self.reload()
 
@@ -463,6 +477,61 @@ class FilterToolPanel(Panel):
         data = {"Name": name, "Step": self.current_step, "Inputs": inputs}
         self.current_step += 1
         self.macro_steps.append(data)
+
+    def unbind(self):
+        config.config.remove_option("Filter Keys", self.selectedFilterName)
+        self.binding_button.tooltipText = "Click to bind opening this filter to a hotkey"
+        self.keys_panel.dismiss()
+
+    def bind_key(self, message=None):
+        panel = Panel()
+        panel.bg_color = (0.5, 0.5, 0.6, 1.0)
+        if not message:
+            message = _("Press a key to assign to opening the filter \"{0}\"\n\nPress ESC to cancel.").format(self.selectedFilterName)
+        label = albow.Label(message)
+        unbind_button = Button("Press to unbind", action=self.unbind)
+        column = Column((label, unbind_button))
+        panel.add(column)
+        panel.shrink_wrap()
+
+        def panelKeyUp(evt):
+            keyname = self.root.getKey(evt)
+            panel.dismiss(keyname)
+
+        def panelMouseUp(evt):
+            button = keys.remapMouseButton(evt.button)
+            if button == 3:
+                keyname = "Button 3"
+            elif button == 4:
+                keyname = "Scroll Up"
+            elif button == 5:
+                keyname = "Scroll Down"
+            elif button == 6:
+                keyname = "Button 4"
+            elif button == 7:
+                keyname = "Button 5"
+            if button > 2:
+                panel.dismiss(keyname)
+
+        panel.key_up = panelKeyUp
+        panel.mouse_up = panelMouseUp
+
+        self.keys_panel = panel
+        keyname = panel.present()
+        if type(keyname) is bool:
+            return True
+        if keyname != "Escape" and keyname not in ["Alt-F4","F1","F2","F3","F4","F5","1","2","3","4","5","6","7","8","9","Ctrl-Alt-F9","Ctrl-Alt-F10"]:
+            keysUsed = [(j, i) for (j, i) in config.config.items("Keys") if i == keyname]
+            if keysUsed:
+                self.bind_key(_("Can't bind. {0} is already used by {1}.\nPress a key to assign to opening the filter \"{2}\"\n\nPress ESC to cancel.").format(keyname, keysUsed[0][0], self.selectedFilterName))
+                return True
+        elif keyname != "Escape":
+            self.bind_key(_("You can't use the key {0}.\nPress a key to assign to opening the filter \"{1}\"\n\nPress ESC to cancel.").format(keyname, self.selectedFilterName))
+            return True
+        if keyname != "Escape":
+            self.binding_button.tooltipText = keyname
+            config.config.set("Filter Keys", self.selectedFilterName, keyname)
+        config.save()
 
     filterOptionsPanel = None
 

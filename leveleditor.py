@@ -150,6 +150,8 @@ class LevelEditor(GLViewport):
         self.redoStack = []
         self.copyStack = []
 
+        self.nbtCopyBuffer = mcedit.nbtCopyBuffer
+
         self.level = None
 
         self.cameraInputs = [0., 0., 0.]
@@ -1489,30 +1491,6 @@ class LevelEditor(GLViewport):
             reach *= 0.95
         return reach
 
-    def take_screenshot(self):
-        try:
-            os.mkdir(os.path.join(directories.parentDir, "screenshots"))
-        except OSError:
-            pass
-        screenshot_name = os.path.join(directories.parentDir, "screenshots", time.strftime("%Y-%m-%d (%I-%M-%S-%p)")+".png")
-        pygame.image.save(pygame.display.get_surface(), screenshot_name)
-        self.diag = Dialog()
-        lbl = Label("Screenshot taken and saved as '"+screenshot_name+"'")
-        folderBtn = Button("Open Folder", action=self.open_screenshots_folder)
-        btn = Button("Ok", action=self.screenshot_notify)
-        buttonsRow = Row((btn,folderBtn))
-        col = Column((lbl,buttonsRow))
-        self.diag.add(col)
-        self.diag.shrink_wrap()
-        self.diag.present()
-
-    @staticmethod
-    def open_screenshots_folder():
-        platform_open(os.path.join(directories.parentDir, "screenshots"))
-
-    def screenshot_notify(self):
-        self.diag.dismiss()
-
     def key_up(self, evt):
         self.currentTool.keyUp(evt)
         keyname = evt.dict.get('keyname', None) or self.root.getKey(evt)
@@ -1610,8 +1588,6 @@ class LevelEditor(GLViewport):
             self.copySelection()
         if keyname == config.keys.paste.get():
             self.pasteSelection()
-        if keyname == config.keys.takeAScreenshot.get():
-            self.take_screenshot()
 
         if keyname == config.keys.reloadWorld.get():
             self.reload()
@@ -1697,6 +1673,16 @@ class LevelEditor(GLViewport):
 
         if keyname == 'F7':
             self.testBoardKey = 1
+
+        if self.selectionSize():
+            filter_keys = [i for (i, j) in config.config._sections["Filter Keys"].items() if j == keyname]
+            if filter_keys:
+                self.toolbar.selectTool(4)
+                filters = [i for i in self.toolbar.tools[4].filterModules if i.lower() == filter_keys[0]]
+                if filters:
+                    self.toolbar.tools[4].panel.selectedFilterName = filters[0]
+                    self.toolbar.tools[4].panel.reload()
+
 
         self.root.fix_sticky_ctrl()
 
@@ -2121,8 +2107,6 @@ class LevelEditor(GLViewport):
         worldTable = TableView(columns=[
             TableColumn("Last Played", 170, "l"),
             TableColumn("Level Name (filename)", 500, "l"),
-            TableColumn("Dims", 100, "r"),
-
         ])
 
         def dateobj(lp):
@@ -2151,9 +2135,9 @@ class LevelEditor(GLViewport):
                     except:
                         return "[UNABLE TO READ]"
 
-        worldData = [[dateFormat(d), nameFormat(w), str(w.dimensions.keys())[1:-1], w, d]
+        worldData = [[dateFormat(d), nameFormat(w), w, d]
                      for w, d in ((w, dateobj(w.LastPlayed)) for w in worlds)]
-        worldData.sort(key=lambda (a, b, dim, w, d): d, reverse=True)
+        worldData.sort(key=lambda (a, b, w, d): d, reverse=True)
         # worlds = [w[2] for w in worldData]
 
         worldTable.selectedWorldIndex = 0
