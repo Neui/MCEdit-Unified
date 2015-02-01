@@ -14,14 +14,16 @@
 from pygame import key, draw, image, Rect
 from albow import Column, Row, Label, Tree, TableView, TableColumn, Button, \
     FloatField, IntField, TextFieldWrapped, AttrRef, ItemRef, CheckBox, Widget, \
-    ScrollPanel, ask, alert
-from albow.tree import TreeRow
+    ScrollPanel, ask, alert, input_text_buttons
+from albow.tree import TreeRow, setup_map_types_item
 from albow.utils import blit_in_rect
 from albow.translate import _
 from glbackground import Panel
 from pymclevel.nbt import load, TAG_Byte, TAG_Short, TAG_Int, TAG_Long, TAG_Float, \
      TAG_Double, TAG_String, TAG_Byte_Array, TAG_List, TAG_Compound, TAG_Int_Array, \
-     TAG_Short_Array
+     TAG_Short_Array, TAG_BYTE, TAG_SHORT, TAG_INT, TAG_LONG, TAG_FLOAT, TAG_DOUBLE, \
+     TAG_BYTE_ARRAY, TAG_STRING, TAG_LIST, TAG_COMPOUND, TAG_INT_ARRAY, TAG_SHORT_ARRAY
+from numpy import array
 from albow.theme import root
 scroll_button_size = 0 + root.PaletteView.scroll_button_size
 bullet_color_active = root.Tree.bullet_color_active
@@ -35,7 +37,7 @@ import copy
 from directories import getDataDir
 import os
 import mcplatform
-from mceutils import CheckBoxLabel
+from mceutils import CheckBoxLabel, ChoiceButton
 from config import config
 
 #-----------------------------------------------------------------------------
@@ -47,7 +49,6 @@ def get_bullet_image(index, w=16, h=16):
         bullet_image = image.load(config.nbtTreeSettings.bulletFileName.get())
     r =  Rect(0, 0, w, h)
     line_length = int(bullet_image.get_width() / w)
-    num_lines = int(bullet_image.get_height() / h)
     line = int(index / line_length)
     r.top = line * h
     r.left = (index - (line * line_length)) * w
@@ -106,11 +107,83 @@ array_types = {TAG_Byte_Array: field_types[TAG_Byte],
 
 
 #-----------------------------------------------------------------------------
+class TAG_List_Type(Widget):
+    choices = []
+    def __init__(self, value=None):
+        Widget.__init__(self)
+        self.choiceButton = ChoiceButton(self.choices)
+        self.add(self.choiceButton)
+        self.shrink_wrap()
+
+    @property
+    def value(self):
+        return self.choiceButton.selectedChoice
+
+item_types_map = {TAG_Byte: ("Byte", IntField, 0),
+                  TAG_Double: ("Floating point", FloatField, 0.0),
+                  TAG_Float: ("Floating point", FloatField, 0.0),
+                  TAG_Int: ("Integral", IntField, 0),
+                  TAG_Long: ("Long", IntField, 0),
+                  TAG_Short: ("Short", IntField, 0),
+                  TAG_String: ("String", TextFieldWrapped, ""),
+                  TAG_List: ("List", TAG_List_Type, None),
+                  TAG_Compound: ("Compound", None, None),
+                  TAG_Byte_Array: ("Byte Array", TextFieldWrapped, ""),
+                  TAG_Int_Array: ("Int Array", TextFieldWrapped, ""),
+                  TAG_Short_Array: ("Short Array", TextFieldWrapped, ""),
+                 }
+
+map_types_item = setup_map_types_item(item_types_map)
+
+TAG_List_Type.choices = map_types_item.keys()
+
+#-----------------------------------------------------------------------------
+def create_base_item(self, i_type, i_name, i_value):
+    return i_name, i_type(type(item_types_map[i_type][2])(i_value), i_name)
+
+create_TAG_Byte = create_TAG_Int = create_TAG_Short = create_TAG_Long = \
+    create_TAG_String = create_TAG_Double = create_TAG_Float = create_base_item
+
+def create_TAG_Compound(self, i_type, i_name, i_value):
+    return i_name, i_type([], i_name)
+
+def create_TAG_List(self, i_type, i_name, i_value):
+    return i_name, i_type([], i_name, globals()[map_types_item[i_value][0].__name__.upper()])
+
+def create_array_item(self, i_type, i_name, i_value):
+    value = i_value.strip().strip('[]').strip()
+    if value != "":
+        value = [int(a.strip()) for a in value.split(",") if a.strip().isdigit()]
+    else:
+        value = None
+    return i_name, i_type(array(value, i_type.dtype), i_name)
+
+create_TAG_Byte_Array = create_TAG_Int_Array = create_TAG_Short_Array = create_array_item
+
+#-----------------------------------------------------------------------------
 class NBTTree(Tree):
     def __init__(self, *args, **kwargs):
+        styles = kwargs.get('styles', {})
+        self.update_draw_bullets_methods(styles)
+        global map_types_item
+        self.map_types_item = setup_map_types_item(item_types_map)
+        Tree.__init__(self, *args, **kwargs)
+        for t in self.item_types:
+            if 'create_%s'%t.__name__ in globals().keys():
+                setattr(self, 'create_%s'%t.__name__, globals()['create_%s'%t.__name__])
+
+    def _draw_opened_bullet(self, *args, **kwargs):
+        return Tree.draw_opened_bullet(self, *args, **kwargs)
+
+    def _draw_closed_bullet(self, *args, **kwargs):
+        return Tree.draw_closed_bullet(self, *args, **kwargs)
+
+    def update_draw_bullets_methods(self, styles):
         if config.nbtTreeSettings.useBulletStyles.get() and bullet_styles.get(TAG_Compound, [''] * 4)[2] != '':
             self.draw_opened_bullet = self.draw_closed_bullet = self.draw_TAG_bullet
-        styles = kwargs.get('styles', {})
+        else:
+            self.draw_opened_bullet = self._draw_opened_bullet
+            self.draw_closed_bullet = self._draw_closed_bullet
         for key in styles.keys():
             if hasattr(key, '__name__'):
                 name = key.__name__
@@ -119,11 +192,74 @@ class NBTTree(Tree):
             else:
                 name = repr(key)
             setattr(self, 'draw_%s_bullet'%name, self.draw_TAG_bullet)
-        Tree.__init__(self, *args, **kwargs)
+
+    @staticmethod
+    def add_item_to_TAG_Compound(parent, name, item):
+        parent[name] = item
+
+    def add_item_to_TAG_List(self, parent, name, item):
+        if parent == self.selected_item[9]:
+            idx = len(parent.value)
+        else:
+            idx = parent.value.index(self.selected_item[9])
+        parent.insert(idx, item)
+
+    def add_item(self, types_item=None):
+        if types_item is None:
+            parent = self.get_item_parent(self.selected_item)
+            if parent:
+                p_type = parent[7]
+                if p_type == TAG_List:
+                    k = parent[9].list_type
+                    v = None
+                    for key, value in item_types_map.items():
+                        if globals().get(key.__name__.upper(), -1) == k:
+                            v = value
+                            break
+                    if v is None:
+                        return
+                    types_item = {v[0]: (key, v[1], v[2])}
+        Tree.add_item(self, types_item)
+
+    def add_child(self, types_item=None):
+        if types_item is None:
+            parent = self.selected_item
+            p_type = parent[7]
+            if p_type == TAG_List:
+                k = parent[9].list_type
+                v = None
+                for key, value in item_types_map.items():
+                    if globals().get(key.__name__.upper(), -1) == k:
+                        v = value
+                        break
+                if v is None:
+                    return
+                types_item = {v[0]: (key, v[1], v[2])}
+        Tree.add_child(self, types_item)
+
+    def delete_item(self):
+        parent = self.get_item_parent(self.selected_item)
+        if parent:
+            if parent[7] == TAG_List:
+                del parent[9][parent[9].value.index(self.selected_item[9])]
+            else:
+                del parent[9][self.selected_item[9].name]
+        else:
+            del self.data[self.selected_item[9].name]
+        self.selected_item_index = None
+        self.selected_item = None
+        self.build_layout()
+
+    def rename_item(self):
+        result = input_text_buttons("Choose a name", 300, self.selected_item[3])
+        if type(result) in (str, unicode):
+            self.selected_item[3] = result
+            self.selected_item[9].name = result
+            self.build_layout()
 
     def click_item(self, *args, **kwargs):
         Tree.click_item(self, *args, **kwargs)
-        if self._parent:
+        if self._parent and self.selected_item:
             self._parent.update_side_panel(self.selected_item)
 
     @staticmethod
@@ -171,6 +307,7 @@ class NBTTree(Tree):
 class NBTExplorerOptions(ToolOptions):
     def __init__(self, tool):
         Panel.__init__(self)
+        self.tool = tool
         useStyleBox = CheckBoxLabel(title="Use Bullet Styles",
                                     ref=config.nbtTreeSettings.useBulletStyles)
 
@@ -242,7 +379,11 @@ class NBTExplorerOptions(ToolOptions):
             config.nbtTreeSettings.bulletFileName.set(fName)
 
     def dismiss(self, *args, **kwargs):
-        change_styles()
+        bullet_styles = change_styles()
+        if hasattr(self.tool, 'panel') and self.tool.panel is not None:
+            self.tool.panel.tree.styles = bullet_styles
+            self.tool.panel.tree.update_draw_bullets_methods(bullet_styles)
+            self.tool.panel.tree.build_layout()
         ToolOptions.dismiss(self, *args, **kwargs)
 
 #-----------------------------------------------------------------------------
@@ -300,19 +441,19 @@ class NBTExplorerOperation(Operation):
                 if recordUndo:
                     self.canUndo = True
                     self.undoLevel = self.extractUndo()
-                self.toolPanel.nbtObject[self.toolPanel.dataKeyName].update(self.toolPanel.data)
+                self.toolPanel.nbtObject[self.toolPanel.dataKeyName] = self.toolPanel.data
 
     def undo(self):
         if self.undoLevel:
             self.redoLevel = self.extractUndo()
             self.toolPanel.data.update(self.undoLevel)
-            self.toolPanel.nbtObject[self.toolPanel.dataKeyName].update(self.undoLevel)
+            self.toolPanel.nbtObject[self.toolPanel.dataKeyName] = self.undoLevel
             self.update_tool()
 
     def redo(self):
         if self.redoLevel:
             self.toolPanel.data.update(self.redoLevel)
-            self.toolPanel.nbtObject[self.toolPanel.dataKeyName].update(self.redoLevel)
+            self.toolPanel.nbtObject[self.toolPanel.dataKeyName] = self.redoLevel
             self.update_tool()
 
     def update_tool(self):
@@ -321,10 +462,11 @@ class NBTExplorerOperation(Operation):
             index = toolPanel.tree.selected_item_index
             toolPanel.tree.build_layout()
             toolPanel.tree.selected_item_index = index
-            item = toolPanel.tree.rows[index]
-            toolPanel.tree.selected_item = item
-            toolPanel.displayed_item = None
-            toolPanel.update_side_panel(item)
+            if index is not None:
+                item = toolPanel.tree.rows[index]
+                toolPanel.tree.selected_item = item
+                toolPanel.displayed_item = None
+                toolPanel.update_side_panel(item)
 
 
 #-----------------------------------------------------------------------------
@@ -352,10 +494,14 @@ class NBTExplorerToolPanel(Panel):
         if kwargs.get('no_header', False):
             self.max_height = max_height = kwargs.get('height', editor.mainViewport.height - editor.toolbar.height - editor.subwidgets[0].height) - (self.margin * 2) - btnRow.height - 2
         else:
-            header = Label("NBT Explorer")
+            title = _("NBT Explorer")
+            if fileName:
+                title += " - %s"%os.path.split(fileName)[-1]
+            header = Label(title, doNotTranslate=True)
             self.max_height = max_height = kwargs.get('height', editor.mainViewport.height - editor.toolbar.height - editor.subwidgets[0].height) - header.height - (self.margin * 2) - btnRow.height - 2
         self.setCompounds()
-        self.tree = NBTTree(height=max_height, inner_width=250, data=self.data, compound_types=self.compounds, draw_zebra=False, _parent=self, styles=bullet_styles)
+        self.tree = NBTTree(height=max_height, inner_width=250, data=self.data, compound_types=self.compounds,
+                            copyBuffer=editor.nbtCopyBuffer, draw_zebra=False, _parent=self, styles=bullet_styles)
         col = Column([self.tree, btnRow], margin=0, spacing=2)
         col.shrink_wrap()
         row = [col, Column([Label("", width=300), ], height=max_height + btnRow.height + 2)]
@@ -394,7 +540,8 @@ class NBTExplorerToolPanel(Panel):
         self.setCompounds()
         if hasattr(self, 'tree'):
             self.tree.set_parent(None)
-            self.tree = NBTTree(height=self.max_height, inner_width=250, data=self.data, compound_types=self.compounds, draw_zebra=False, _parent=self, styles=bullet_styles)
+            self.tree = NBTTree(height=self.max_height, inner_width=250, data=self.data, compound_types=self.compounds,
+                                copyBuffer=self.editor.nbtCopyBuffer, draw_zebra=False, _parent=self, styles=bullet_styles)
             self.displayRow.subwidgets[0].subwidgets.insert(0, self.tree)
             self.tree.set_parent(self.displayRow.subwidgets[0])
 
@@ -645,7 +792,6 @@ class NBTExplorerTool(EditorTool):
                     return
                 dontSaveRootTag = False
                 nbtObject = load(fName)
-                dataKeyName = None
                 if nbtObject.get('Data', None):
                     dataKeyName = 'Data'
                 elif nbtObject.get('data', None):
@@ -655,13 +801,14 @@ class NBTExplorerTool(EditorTool):
                     dataKeyName = 'Data'
                     dontSaveRootTag = True
                     nbtObject = TAG_Compound([nbtObject,])
+                self.editor.toolbar.removeToolPanels()
                 self.editor.currentTool = self
                 self.showPanel(fName, nbtObject, dontSaveRootTag, dataKeyName)
                 self.optionsPanel.dismiss()
 
     def saveFile(self, fName, data, dontSaveRootTag):
         if os.path.exists(fName):
-            r = ask("File allready exists.\nClick 'OK' to choose one.")
+            r = ask("File already exists.\nClick 'OK' to choose one.")
             if r == 'OK':
                 folder, name = os.path.split(fName)
                 suffix = os.path.splitext(name)[-1][1:]

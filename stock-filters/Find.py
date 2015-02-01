@@ -50,7 +50,27 @@ if newLayout:
                      )
                  )
 
+tree = None
 
+def set_tree(t):
+    global tree
+    tree = t
+    # The tooltip does not work yet...
+    if hasattr(tree, 'treRow'):
+        t.treeRow.tooltipText = "Double_click to go to this item."
+#    t.tooltipText = "Double_click to go to this item."
+
+def nbttree_mouse_down(e):
+    if e.num_clicks > 1:
+        if tree.selected_item and tree.selected_item[3].startswith('(') and tree.selected_item[3].endswith(')'):
+            s = ast.literal_eval(tree.selected_item[3])
+            editor.mainViewport.cameraPosition = (s[0] + 0.5, s[1] + 2, s[2] - 1)
+            editor.mainViewport.yaw = 0.0
+            editor.mainViewport.pitch = 45.0
+
+            newBox = BoundingBox(s, (1, 1, 1))
+            editor.selectionTool.setSelection(newBox)
+    tree.treeRow.__class__.mouse_down(tree.treeRow, e)
 
 try:
     search
@@ -228,8 +248,10 @@ def perform(level, box, options):
                 for i in range(len(search)):
                     if by == 'Block':
                         treeData[u"%s"%(search[i],)] = datas[i]
-                    else:
+                    elif by == 'Entity':
                         treeData[u"%s"%((datas[i]['Pos'][0].value, datas[i]['Pos'][1].value, datas[i]['Pos'][2].value),)] = datas[i]
+                    else:
+                        treeData[u"%s"%((datas[i]['x'].value, datas[i]['y'].value, datas[i]['z'].value),)] = datas[i]
                 inputs[1][1][1][1] = {'Data': treeData}
                 options[""](inputs[1])
             else:
