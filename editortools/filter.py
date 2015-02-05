@@ -253,7 +253,13 @@ class FilterModuleOptions(Widget):
 
             #-#
             elif type(optionType) == list and optionType[0].lower() == "nbttree":
-                self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=optionType[1], height=max_height, no_header=True)
+                kw = {'close_text': None}
+                if len(optionType) == 3:
+                    def close():
+                        self.pages.show_page(self.pages.pages[optionType[2]])
+                    kw['close_action'] = close
+                    kw['close_text'] = "Go Back"
+                self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=optionType[1], height=max_height, no_header=True, **kw)
                 self.module.set_tree(self.nbttree.tree)
                 for meth_name in dir(self.module):
                     if meth_name.startswith('nbttree_'):
@@ -274,7 +280,8 @@ class FilterModuleOptions(Widget):
                 h += r.height
                 if h > height / 2:
                     break
-            cols.append(Column(rows[:i], spacing=0))
+            if rows[:i]:
+                cols.append(Column(rows[:i], spacing=0))
             rows = rows[i:]
 
         if len(rows):
@@ -314,7 +321,7 @@ class FilterToolPanel(Panel):
         if len(self.tool.filterModules):
             self.reload()
 
-    def reload(self):
+    def reload(self, filterOptionsPanel=None):
         for i in list(self.subwidgets):
             self.remove(i)
 
@@ -346,13 +353,13 @@ class FilterToolPanel(Panel):
         self.filterSelect.selectedChoice = self.selectedFilterName
         
         if not self._recording:
-            self.macro_button = Button("Record a Macro", action=self.start_record_macro)
+            self.macro_button = Button("Record Macro", action=self.start_record_macro)
 
         if self.selectedFilterName.lower() in config.config._sections["Filter Keys"]:
-            binding_button_tooltiptext = config.config._sections["Filter Keys"][self.selectedFilterName.lower()]
+            binding_button_name = config.config._sections["Filter Keys"][self.selectedFilterName.lower()]
         else:
-            binding_button_tooltiptext = "Click to bind opening this filter to a hotkey"
-        self.binding_button = Button("*", action=self.bind_key, tooltipText=binding_button_tooltiptext)
+            binding_button_name = "*"
+        self.binding_button = Button(binding_button_name, action=self.bind_key, tooltipText="Click to bind this filter to a hotkey")
 
         filterLabel = Label("Filter:", fg_color=(177, 177, 255, 255))
         filterLabel.mouse_down = lambda x: mcplatform.platform_open(directories.getFiltersDir())
@@ -426,6 +433,16 @@ class FilterToolPanel(Panel):
             self.saveOptions()
             self.selectedFilterName = self.filterSelect.selectedChoice
             self.reload_macro()
+            self.macro_button.set_text("Delete Macro")
+            self.macro_button.action = self.delete_macro
+            
+    def delete_macro(self):
+        macro_name = self.selectedFilterName.replace("[Macro] ", "")
+        if macro_name in self.macro_json["Macros"]:
+            del self.macro_json["Macros"][macro_name]
+            with open(os.path.join(directories.getDataDir(), "filters.json"), 'w') as f:
+                json.dump(self.macro_json, f)
+            self.reload()
 
     def set_save(self):
         self._save_macro = True
@@ -443,7 +460,7 @@ class FilterToolPanel(Panel):
         self.macro_diag.add(Column((input_row, button_row)))
         self.macro_diag.shrink_wrap()
         self.macro_diag.present()
-        self.macro_button.text = "Record a Macro"
+        self.macro_button.text = "Record Macro"
         self.macro_button.tooltipText = ""
         self.macro_button.action = self.start_record_macro
         self._recording = False
@@ -480,14 +497,16 @@ class FilterToolPanel(Panel):
 
     def unbind(self):
         config.config.remove_option("Filter Keys", self.selectedFilterName)
-        self.binding_button.tooltipText = "Click to bind opening this filter to a hotkey"
+        self.binding_button.text = "*"
         self.keys_panel.dismiss()
+        self.saveOptions()
+        self.reload()
 
     def bind_key(self, message=None):
         panel = Panel()
         panel.bg_color = (0.5, 0.5, 0.6, 1.0)
         if not message:
-            message = _("Press a key to assign to opening the filter \"{0}\"\n\nPress ESC to cancel.").format(self.selectedFilterName)
+            message = _("Press a key to assign to the filter \"{0}\"\n\nPress ESC to cancel.").format(self.selectedFilterName)
         label = albow.Label(message)
         unbind_button = Button("Press to unbind", action=self.unbind)
         column = Column((label, unbind_button))
@@ -523,15 +542,17 @@ class FilterToolPanel(Panel):
         if keyname != "Escape" and keyname not in ["Alt-F4","F1","F2","F3","F4","F5","1","2","3","4","5","6","7","8","9","Ctrl-Alt-F9","Ctrl-Alt-F10"]:
             keysUsed = [(j, i) for (j, i) in config.config.items("Keys") if i == keyname]
             if keysUsed:
-                self.bind_key(_("Can't bind. {0} is already used by {1}.\nPress a key to assign to opening the filter \"{2}\"\n\nPress ESC to cancel.").format(keyname, keysUsed[0][0], self.selectedFilterName))
+                self.bind_key(_("Can't bind. {0} is already used by {1}.\nPress a key to assign to the filter \"{2}\"\n\nPress ESC to cancel.").format(keyname, keysUsed[0][0], self.selectedFilterName))
                 return True
         elif keyname != "Escape":
-            self.bind_key(_("You can't use the key {0}.\nPress a key to assign to opening the filter \"{1}\"\n\nPress ESC to cancel.").format(keyname, self.selectedFilterName))
+            self.bind_key(_("You can't use the key {0}.\nPress a key to assign to the filter \"{1}\"\n\nPress ESC to cancel.").format(keyname, self.selectedFilterName))
             return True
         if keyname != "Escape":
-            self.binding_button.tooltipText = keyname
+            self.binding_button.text = keyname
             config.config.set("Filter Keys", self.selectedFilterName, keyname)
         config.save()
+        self.saveOptions()
+        self.reload()
 
     filterOptionsPanel = None
 

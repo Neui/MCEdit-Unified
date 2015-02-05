@@ -15,7 +15,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE."""
 from OpenGL import GL
 import numpy
 import os
-from albow import TableView, TableColumn, Label, Button, Column, CheckBox, AttrRef, Row, ask, alert, input_text_buttons
+from albow import TableView, TableColumn, Label, Button, Column, CheckBox, AttrRef, Row, ask, alert, input_text_buttons, TabPanel
+from albow.table_view import TableRowView
 from albow.translate import _
 from config import config
 from editortools.editortool import EditorTool
@@ -29,6 +30,7 @@ from pymclevel.box import BoundingBox, FloatBox
 from pymclevel import nbt
 import logging
 import version_utils
+from nbtexplorer import loadFile, saveFile, NBTExplorerToolPanel
 
 
 log = logging.getLogger(__name__)
@@ -382,7 +384,10 @@ class PlayerPositionPanel(Panel):
             players = ["Player"]
         self.players = players
 
-        max_height = self.tool.editor.mainViewport.height - self.tool.editor.toolbar.height - self.tool.editor.subwidgets[0].height - self.margin - 2
+        self.pages = TabPanel()
+        tab_height = self.pages.tab_height
+
+        max_height = tab_height + self.tool.editor.mainViewport.height - self.tool.editor.toolbar.height - self.tool.editor.subwidgets[0].height - self.pages.margin * 2
         max_height = min(max_height, 500)
 
         self.editNBTDataButton = Button("Edit NBT data", action=self.editNBTData, tooltipText="Open the NBT Explorer to edit player's attributes and inventory")
@@ -394,13 +399,12 @@ class PlayerPositionPanel(Panel):
         moveToCameraButton = Button("Align Player to Camera", action=self.tool.movePlayerToCamera)
         reloadSkin = Button("Reload Skins", action=self.tool.reloadSkins, tooltipText="This pulls skins from the online server, so this may take a while")
 
-        # The Label("qb", doNotTranslate=True) is not nice, but is used to have a correct layout for the table.
-        btns = (Label("qb", doNotTranslate=True), self.editNBTDataButton, addButton, removeButton, gotoButton, gotoCameraButton, moveButton, moveToCameraButton, reloadSkin)
-        max_height -= sum((a.height for a in btns)) - len(btns) * 2
+        btns = Column([self.editNBTDataButton, addButton, removeButton, gotoButton, gotoCameraButton, moveButton, moveToCameraButton, reloadSkin], margin=0, spacing=2)
+        h = max_height - btns.height - self.pages.margin * 2 - 2 - self.font.size(" ")[1] * 2
 
-        tableview = TableView(nrows=0, row_height=self.font.size(" ")[1], columns=[
+        tableview = TableView(nrows=6, header_height=self.font.size(" ")[1], columns=[
             TableColumn("Player Name(s):", 200),
-        ], height=max_height)
+        ], height=h)
         tableview.index = 0
         tableview.num_rows = lambda: len(players)
         tableview.row_data = lambda i: (players[i],)
@@ -411,15 +415,36 @@ class PlayerPositionPanel(Panel):
             tableview.index = i
 
         tableview.click_row = selectTableRow
+
+        def mouse_down(e):
+            if e.num_clicks > 1:
+                self.editNBTData()
+            TableRowView.mouse_down(tableview.rows, e)
+
+        tableview.rows.mouse_down = mouse_down
+
+        tableview.rows.tooltipText = "Double-click or use the button below to edit the NBT Data."
+
         self.table = tableview
-        col = [self.table]
-
-        col.extend([self.editNBTDataButton, addButton, removeButton, gotoButton, gotoCameraButton, moveButton, moveToCameraButton, reloadSkin])
-
-        col = Column(col, spacing=2)
-        col.shrink_wrap()
-        self.add(col)
+        col = Column([tableview, btns], spacing=2)
+        self.col = col
+        def close():
+            self.pages.show_page(col)
+        self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject={}, height=max_height, \
+                                            close_text="Go Back", no_header=True, close_action=close)
+        self.nbttree.shrink_wrap()
+        
+        
+        self.pages.add_page("Players", col)
+        self.nbtpage = Column([self.nbttree,])
+        self.nbtpage.shrink_wrap()
+        self.pages.add_page("Data", self.nbtpage)
+        self.pages.set_rect(self.nbttree._rect)
+        self.pages.shrink_wrap()
+        self.pages.show_page(col)
+        self.add(self.pages)
         self.shrink_wrap()
+        self.max_height = max_height
 
     def editNBTData(self):
         player = self.selectedPlayer
@@ -432,10 +457,19 @@ class PlayerPositionPanel(Panel):
             if not os.path.exists(path):
                 path = os.path.join(os.path.split(self.level.filename)[0], 'players')
             if player + '.dat' in os.listdir(path):
-                for tool in self.tool.editor.toolbar.tools:
-                    if tool.__class__.__name__ == 'NBTExplorerTool':
-                        break
-                tool.loadFile(os.path.join(path, player + '.dat'), callingTool=self.tool)
+                fName = os.path.join(path, player + '.dat')
+                nbtObject, dataKeyName, dontSaveRootTag = loadFile(fName)
+                self.pages.remove_page(self.nbtpage)
+                def close():
+                    self.pages.show_page(self.col)
+                self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=nbtObject, fileName=fName,
+                                              dontSaveRootTag=dontSaveRootTag, dataKeyName=dataKeyName,
+                                              height=self.max_height, no_header=True, close_text="Go Back",
+                                              close_action=close)
+                self.nbtpage = Column([self.nbttree,])
+                self.nbtpage.shrink_wrap()
+                self.pages.add_page("Data", self.nbtpage)
+                self.pages.show_page(self.nbtpage)
             else:
                 alert(_("Error while getting player file.\n%s not found.")%(player + '.dat'), doNotTranslate=True)
 

@@ -1640,6 +1640,11 @@ class LevelEditor(GLViewport):
         if keyname == config.keys.swap.get():
             self.currentTool.swap()
 
+        #!# D.C.-G.
+        #!# Here we have the part which is responsible for the fallback to the
+        #!# select tool when pressing 'Escape' key.
+        #!# It may be interesting to work on this to be able to return to a tool
+        #!# which have called another.
         if keyname == 'Escape':
             if self.selectionTool.selectionInProgress:
                 self.selectionTool.cancel()
@@ -1648,6 +1653,7 @@ class LevelEditor(GLViewport):
             else:
                 self.mouseLookOff()
                 self.showControls()
+        #!#
 
         if keyname == config.keys.confirmConstruction.get():
             self.confirmConstruction()
@@ -1779,6 +1785,7 @@ class LevelEditor(GLViewport):
                 self._ftp_client = FTPClient(ftp_ip_field.get_text())
             else:
                 self._ftp_client = FTPClient(ftp_ip_field.get_text(), username=ftp_user_field.get_text(), password=ftp_pass_field.get_text())
+            self._ftp_client.safe_download()
             self.mcedit.loadFile(os.path.join(self._ftp_client.get_level_path(), 'level.dat'))
             self.world_from_ftp = True
             
@@ -1794,7 +1801,6 @@ class LevelEditor(GLViewport):
             self._ftp_client.upload()
             world_list = self.mcedit.recentWorlds()
             del world_list[0]
-            print world_list
             self.mcedit.setRecentWorlds(world_list)
             self.clearUnsavedEdits()
             self.unsavedEdits = 0
@@ -2078,7 +2084,7 @@ class LevelEditor(GLViewport):
             return
 
         def loadWorld():
-            self.mcedit.loadFile(worldData[worldTable.selectedWorldIndex][3].filename)
+            self.mcedit.loadFile(worldData[worldTable.selectedWorldIndex][2].filename)
             self.root.fix_sticky_ctrl()
 
         def click_row(i, evt):
@@ -2864,12 +2870,14 @@ class EditorToolbar(GLOrtho):
             return
         if self.parent.currentTool == t:
             self.parent.currentTool.toolReselected()
+            return
         else:
             self.parent.selectionTool.hidePanel()
             if self.parent.currentTool is not None:
                 self.parent.currentTool.cancel()
             self.parent.currentTool = t
             self.parent.currentTool.toolSelected()
+            return
 
     def removeToolPanels(self):
         for tool in self.tools:

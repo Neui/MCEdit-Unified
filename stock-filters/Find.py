@@ -46,7 +46,7 @@ inputs = [(("Match by:", ("TileEntity", "Entity", "Block")),
 
 if newLayout:
     inputs.insert(1, (("Results", "title"),
-                      ("", ["NBTTree", {}]),
+                      ("", ["NBTTree", {}, 0]), # [str name_of_widhet_type, dict default_data, int page_to_goback]
                      )
                  )
 
@@ -55,10 +55,8 @@ tree = None
 def set_tree(t):
     global tree
     tree = t
-    # The tooltip does not work yet...
-    if hasattr(tree, 'treRow'):
-        t.treeRow.tooltipText = "Double_click to go to this item."
-#    t.tooltipText = "Double_click to go to this item."
+    if hasattr(tree, 'treeRow'):
+        t.treeRow.tooltipText = "Double-click to go to this item."
 
 def nbttree_mouse_down(e):
     if e.num_clicks > 1:
