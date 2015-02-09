@@ -1414,7 +1414,7 @@ o667 NBT Explorer
 Dive into level NBT structure.
 Right-click for options
 t667 NBT Explorer
-Tauch in die Ebene NBT Struktur ein.
+Tauche in die Ebene der NBT Struktur ein.
 Rechts-Klick für Optionen
 o668 Save your change in the NBT data.
 t668 Speichere deine Änderungen in den NBT Daten.
@@ -1515,74 +1515,76 @@ t709 Drücken für entfernen des Tastenkürzels
 o710 Are you sure you want to delete the default player?
 t710 Bist du dir sicher dass du den Standard Spieler löschen möchtest?
 o711 Double-click or use the button below to edit the NBT Data.
-t711 
+t711 Doppel-klick oder benutze den Knopf unten um die NBT Daten zu bearbeiten.
 o712 Go Back
-t712 
+t712 Gehe zurück
 o712 Upload to FTP Server
-t712 
+t712 Zum FTP Server hochladen
 o713 There are {0} unsaved changes.
-t713 
+t713 Es gibt {0} ungespeicherte Änderungen
 o714 Save and Quit
-t714 
+t714 Speichern und beenden
 o715 Refresh All Player Names
-t715 
+t715 Alle Spieler Namen aktualisieren
 o716 Ticks mode accouplement
 t716 
 o717 Results
-t717 
+t717 Ergebnise
 o718 Smooth - 3D
-t718 
+t718 Glätten - 3D
 o719 Smoothing
-t719 
+t719 Glätten
 o720 Made by Sethbling
-t720 
+t720 Gemacht von Sethbling
 o721 NBT Data
-t721 
+t721 NBT Daten
 o722 Edit NBT Data
-t722 
+t722 Bearbeite NBT Daten
 o723 Open the NBT Explorer to edit player's attributes and inventory
-t723 
+t723 Öffne den NBT 
 o724 Not yet implemented.
 Use the NBT Explorer to edit this player.
-t724 
+t724 Noch nicht implementiert.
+Benutze den NBT Explorer um den Spieler zu bearbeiten.
 o725 Error while getting player file.
 %s not found.
-t725 
+t725 Fehler beim holen der Spieler Datei.
+%s wurde nicht gefunden.
 o726 Spawn point fixed. Changes: 
 
 
-t726 
+t726 Spawn Punkt korrigiert. Änderungen: 
 
 
 o727 <Selection>
-t727 
+t727 <Auswahl>
 o728 <Miscellaneous>
-t728 
+t728 <Sonstiges>
 o729 Take Screenshot
-t729 
+t729 Mache Bildaufnahme
 o730 Double-click to go to this item.
-t730 
+t730 Doppen-klick um zu dem Item zu gelangen.
 o731 Save and Restart
-t731 
+t731 Speichern und neustarten
 o732 From FTP Server
-t732 
+t732 Vom FTP Server
 o733 <Chunk Control Tool>
-t733 
+t733 <Chunk Kontrollwerkzeug>
 o734 Select Chunks
-t734 
+t734 Wähle Chunks
 o735 No matching blocks/tile entities found
-t735 
+t735 Keine passende Blöcke/Tile Entities gefunden
 o736 Choose a filter, then click Filter or press Enter to apply it.
-t736 
+t736 Wähle ein Filter dann klicke auf Filter oder drücke Enter um zu übernehmen.
 o737 Click to set this item down.
-t737 
+t737 Klicke um den Item abzusetzen.
 o738 Mousewheel to move along the third axis. Hold {0} to only move along one axis.
-t738 
+t738 Mausrad für das Bewegen an der 3. Achse. Halte {0} um nur in eine Achse zu bewegen.
 o739 Click and drag to reposition the item. Double-click to pick it up. Click Clone or press Enter to confirm.
-t739 
+t739 Klicke und ziehe um das Item zu repositionieren. Doppel-klick um es aufzuheben. Klicke auf Klonen oder drücke Enter um zu bestätigen.
 o740 Selection exceeds {0:n} blocks. Increase the block buffer setting and try again.
-t740 
+t740 Auswahl überschreitet {0:n} Blöcke. Erhöhe den Block Puffer Einstellung und versuche erneut.
 o741 Copying to clone buffer...
-t741 
+t741 Kopiere zum Kopierpuffer...
 o742 Import a schematic or level...
-t742 
+t742 Importiere ein Schematic oder ein Level...
