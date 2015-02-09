@@ -146,9 +146,11 @@ class FilterModuleOptions(Widget):
             optionName = optionSpec[0]
             optionType = optionSpec[1]
             if trn is not None:
-                oName = trn._(optionName)
-            else:
+                n = trn._(optionName)
+            if n == optionName:
                 oName = _(optionName)
+            else:
+                oName = n
             if isinstance(optionType, tuple):
                 if isinstance(optionType[0], (int, long, float)):
                     if len(optionType) == 3:
@@ -253,17 +255,24 @@ class FilterModuleOptions(Widget):
 
             #-#
             elif type(optionType) == list and optionType[0].lower() == "nbttree":
-                kw = {'close_text': None}
-                if len(optionType) == 3:
+                kw = {'close_text': None, 'load_text': None}
+                if len(optionType) >= 3:
                     def close():
                         self.pages.show_page(self.pages.pages[optionType[2]])
                     kw['close_action'] = close
                     kw['close_text'] = "Go Back"
-                self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=optionType[1], height=max_height, no_header=True, **kw)
+                if len(optionType) >= 4:
+                    if optionType[3]:
+                        kw['load_text'] = optionType[3]
+                if hasattr(self.module, 'nbt_ok_action'):
+                    kw['ok_action'] = getattr(self.module, 'nbt_ok_action')
+                self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=optionType[1], height=max_height, no_header=True, copy_data=False, **kw)
                 self.module.set_tree(self.nbttree.tree)
                 for meth_name in dir(self.module):
                     if meth_name.startswith('nbttree_'):
                         setattr(self.nbttree.tree.treeRow, meth_name.split('nbttree_')[-1], getattr(self.module, meth_name))
+#                    elif meth_name.startswith('nbt_'):
+#                        setattr(self.nbttree, meth_name.split('nbt_')[-1], getattr(self.module, meth_name))
                 page.optionDict[optionName] = AttrRef(self, 'rebuildTabPage')
                 rows.append(self.nbttree)
                 self.nbttree.page = len(self.pgs)
@@ -580,6 +589,19 @@ class FilterOperation(Operation):
         
         if not self.panel._recording:
             self.filter.perform(self.level, BoundingBox(self.box), self.options)
+#            result = self.filter.perform(self.level, BoundingBox(self.box), self.options)
+#            print result
+#            if type(result) == dict:
+#                for k, v in result.items():
+##                    setattr(self.module, k, v)
+#                    if k == 'call':
+#                        for command in v:
+#                            if len(command) == 3:
+#                                command[0](*command[1], **command[2])
+#                            elif len(command) == 2:
+#                                command[0](*command[1])
+#                            else:
+#                                command[0]()
         else:
             self.panel.addMacroStep(name=self.panel.filterSelect.selectedChoice, inputs=self.options)
             self.wasMacroOperation = True
@@ -747,12 +769,14 @@ class FilterTool(EditorTool):
     @staticmethod
     def moduleDisplayName(module):
         if hasattr(module, "displayName"):
+            n = module.displayName
             if hasattr(module, "trn"):
-                return module.trn._(module.displayName)
-            else:
-                return module.displayName
+                n = module.trn._(module.displayName)
+            if n == module.displayName:
+                n = _(module.displayName)
+            return n
         else:
-            return module.__name__.capitalize()
+            return _(module.__name__.capitalize())
 
     @alertFilterException
     def confirm(self):

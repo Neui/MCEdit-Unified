@@ -354,7 +354,7 @@ class NBTExplorerOptions(ToolOptions):
                       Row((useStyleBox, useTextBox, useImagesBox)),
                       bulletFilePath,
                       showAllTags,
-                      Button("Load NBT file...", action=tool.loadFile),
+#                      Button("Load NBT file...", action=tool.loadFile),
                       Button("OK", action=self.dismiss),
                     ))
         self.add(col)
@@ -472,7 +472,7 @@ class NBTExplorerOperation(Operation):
 #-----------------------------------------------------------------------------
 class NBTExplorerToolPanel(Panel):
     """..."""
-    def __init__(self, editor, nbtObject=None, fileName=None, dontSaveRootTag=False, dataKeyName='Data', close_text="Close", **kwargs):
+    def __init__(self, editor, nbtObject=None, fileName=None, dontSaveRootTag=False, dataKeyName='Data', close_text="Close", load_text="Open", **kwargs):
         """..."""
         Panel.__init__(self)
         self.editor = editor
@@ -481,8 +481,12 @@ class NBTExplorerToolPanel(Panel):
         self.dontSaveRootTag = dontSaveRootTag
         self.displayed_item = None
         self.dataKeyName = dataKeyName
+        self.copy_data = kwargs.get('copy_data', True)
         self.init_data()
-        btns = [
+        btns = []
+        if load_text:
+            btns.append(Button(load_text, action=self.editor.nbtTool.loadFile))
+        btns += [
                 Button({True: "Save", False: "OK"}[fileName != None], action=kwargs.get('ok_action', self.save_NBT), tooltipText="Save your change in the NBT data."),
                 Button("Reset", action=kwargs.get('reset_action', self.reset), tooltipText="Reset ALL your changes in the NBT data."),
                 ]
@@ -491,13 +495,6 @@ class NBTExplorerToolPanel(Panel):
 
         btnRow = Row(btns, margin=1, spacing=4)
 
-#        btnRow = Row([
-#                           Button({True: "Save", False: "OK"}[fileName != None], action=kwargs.get('ok_action', self.save_NBT), tooltipText="Save your change in the NBT data."),
-#                           Button("Reset", action=kwargs.get('reset_action', self.reset), tooltipText="Reset ALL your changes in the NBT data."),
-#                           Button(kwargs.get('close_text', "Close"), action=kwargs.get('close_action', self.close)),
-#                          ],
-#                          margin=1, spacing=4,
-#                         )
         btnRow.shrink_wrap()
         self.btnRow = btnRow
 
@@ -512,14 +509,12 @@ class NBTExplorerToolPanel(Panel):
         self.setCompounds()
         self.tree = NBTTree(height=max_height - btnRow.height -2, inner_width=250, data=self.data, compound_types=self.compounds,
                             copyBuffer=editor.nbtCopyBuffer, draw_zebra=False, _parent=self, styles=bullet_styles)
-        col = Column([self.tree, btnRow], margin=0, spacing=2)
-        col.shrink_wrap()
-        row = [col, Column([Label("", width=300), ], height=max_height, margin=0)]
+        row = [self.tree, Column([Label("", width=300), ], margin=0)]
         self.displayRow = Row(row, height=max_height, margin=0, spacing=0)
         if kwargs.get('no_header', False):
-            self.add(Column([self.displayRow,], margin=0)) #, height=max_height + btnRow.height + 2))
+            self.add(Column([self.displayRow, btnRow], margin=0))
         else:
-            self.add(Column([header, self.displayRow], margin=0))
+            self.add(Column([header, self.displayRow, btnRow], margin=0))
         self.shrink_wrap()
         self.side_panel = None
 
@@ -545,7 +540,10 @@ class NBTExplorerToolPanel(Panel):
         if self.nbtObject == None and hasattr(self.editor.level, 'root_tag'):
             self.nbtObject = self.editor.level.root_tag
         if self.nbtObject:
-            data = copy.deepcopy(self.nbtObject[self.dataKeyName])
+            if self.copy_data:
+                data = copy.deepcopy(self.nbtObject[self.dataKeyName])
+            else:
+                data = self.nbtObject[self.dataKeyName]
         self.data = data
         self.setCompounds()
         if hasattr(self, 'tree'):
@@ -596,7 +594,7 @@ class NBTExplorerToolPanel(Panel):
             if col:
                 col = Column(rows, align='l', spacing=0, height=self.displayRow.height)
             else:
-                col = ScrollPanel(rows=rows, align='l', spacing=0, height=self.displayRow.height, draw_zebra=False, inner_width=300)
+                col = ScrollPanel(rows=rows, align='l', spacing=0, height=self.displayRow.height, draw_zebra=False, inner_width=300 - scroll_button_size)
             col.set_parent(self.displayRow)
             col.top = self.displayRow.top
             col.left = self.displayRow.subwidgets[0].right
@@ -769,7 +767,7 @@ class NBTExplorerToolPanel(Panel):
 #-----------------------------------------------------------------------------
 class NBTExplorerTool(EditorTool):
     """..."""
-    tooltipText = "NBT Explorer\nDive into level NBT structure.\nRight-click for options/load files."
+    tooltipText = "NBT Explorer\nDive into level NBT structure.\nRight-click for options"
     _alreadyHidden = False
 
     @property
@@ -796,6 +794,18 @@ class NBTExplorerTool(EditorTool):
     def showPanel(self, fName=None, nbtObject=None, dontSaveRootTag=False, dataKeyName='Data'):
         """..."""
         if (self.panel is None and self.editor.currentTool in (self, None)): # or nbtObject:
+            #!# BAD HACK
+            try:
+                class fakeStdErr:
+                    def __init__(self, *args, **kwargs): pass
+                    def write(self, *args, **kwargs): pass
+                stderr = os.sys.stderr
+                os.sys.stderr = fakeStdErr()
+                os.sys.stderr = stderr
+            except:
+                alert("Unattended data. File not loaded")
+                return
+            #!#
             self.panel = NBTExplorerToolPanel(self.editor, nbtObject=nbtObject, fileName=fName,
                                               dontSaveRootTag=dontSaveRootTag, dataKeyName=dataKeyName)
             self.panel.centery = (self.editor.mainViewport.height - self.editor.toolbar.height) / 2 + self.editor.subwidgets[0].height
@@ -804,9 +814,10 @@ class NBTExplorerTool(EditorTool):
 
     def loadFile(self, fName=None):
         nbtObject, dataKeyName, dontSaveRootTag, fName = loadFile(fName)
-        self.editor.toolbar.removeToolPanels()
-        self.editor.currentTool = self
-        self.showPanel(fName, nbtObject, dontSaveRootTag, dataKeyName)
+        if nbtObject != None:
+            self.editor.toolbar.removeToolPanels()
+            self.editor.currentTool = self
+            self.showPanel(fName, nbtObject, dontSaveRootTag, dataKeyName)
         self.optionsPanel.dismiss()
 
     def saveFile(self, fName, data, dontSaveRootTag):
@@ -816,14 +827,18 @@ class NBTExplorerTool(EditorTool):
 #------------------------------------------------------------------------------
 def loadFile(fName):
     if not fName:
-        fName = mcplatform.askOpenFile(title="Select a NBT (.dat) file...", suffixes=['dat',])
+        fName = mcplatform.askOpenFile(title=_("Select a NBT (.dat) file..."), suffixes=['dat',])
     if fName:
         if not os.path.isfile(fName):
             alert("The selected object is not a file.\nCan't load it.")
             return
         dontSaveRootTag = False
         nbtObject = load(fName)
-        if nbtObject.get('Data', None):
+        if fName.endswith('.schematic'):
+            nbtObject = TAG_Compound(name='Data', value=nbtObject)
+            dontSaveRootTag = True
+            dataKeyName = 'Data'
+        elif nbtObject.get('Data', None):
             dataKeyName = 'Data'
         elif nbtObject.get('data', None):
             dataKeyName = 'data'
@@ -832,7 +847,9 @@ def loadFile(fName):
             dataKeyName = 'Data'
             dontSaveRootTag = True
             nbtObject = TAG_Compound([nbtObject,])
-    return nbtObject, dataKeyName, dontSaveRootTag, fName
+#        dontSaveRootTag = not fName.endswith('.schematic')
+        return nbtObject, dataKeyName, dontSaveRootTag, fName
+    return [None,] * 4
 
 def saveFile(fName, data, dontSaveRootTag):
     if os.path.exists(fName):

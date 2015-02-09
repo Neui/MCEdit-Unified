@@ -390,7 +390,7 @@ class PlayerPositionPanel(Panel):
         max_height = tab_height + self.tool.editor.mainViewport.height - self.tool.editor.toolbar.height - self.tool.editor.subwidgets[0].height - self.pages.margin * 2
         max_height = min(max_height, 500)
 
-        self.editNBTDataButton = Button("Edit NBT data", action=self.editNBTData, tooltipText="Open the NBT Explorer to edit player's attributes and inventory")
+        self.editNBTDataButton = Button("Edit NBT Data", action=self.editNBTData, tooltipText="Open the NBT Explorer to edit player's attributes and inventory")
         addButton = Button("Add Player", action=self.tool.addPlayer)
         removeButton = Button("Remove Player", action=self.tool.removePlayer)
         gotoButton = Button("Goto Player", action=self.tool.gotoPlayer)
@@ -417,7 +417,7 @@ class PlayerPositionPanel(Panel):
         tableview.click_row = selectTableRow
 
         def mouse_down(e):
-            if e.num_clicks > 1:
+            if e.button == 1 and e.num_clicks > 1:
                 self.editNBTData()
             TableRowView.mouse_down(tableview.rows, e)
 
@@ -431,14 +431,15 @@ class PlayerPositionPanel(Panel):
         def close():
             self.pages.show_page(col)
         self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject={}, height=max_height, \
-                                            close_text="Go Back", no_header=True, close_action=close)
+                                            close_text="Go Back", no_header=True, close_action=close,
+                                            load_text=None)
         self.nbttree.shrink_wrap()
         
         
         self.pages.add_page("Players", col)
         self.nbtpage = Column([self.nbttree,])
         self.nbtpage.shrink_wrap()
-        self.pages.add_page("Data", self.nbtpage)
+        self.pages.add_page("NBT Data", self.nbtpage)
         self.pages.set_rect(self.nbttree._rect)
         self.pages.shrink_wrap()
         self.pages.show_page(col)
@@ -458,17 +459,17 @@ class PlayerPositionPanel(Panel):
                 path = os.path.join(os.path.split(self.level.filename)[0], 'players')
             if player + '.dat' in os.listdir(path):
                 fName = os.path.join(path, player + '.dat')
-                nbtObject, dataKeyName, dontSaveRootTag = loadFile(fName)
+                nbtObject, dataKeyName, dontSaveRootTag, fn = loadFile(fName)
                 self.pages.remove_page(self.nbtpage)
                 def close():
                     self.pages.show_page(self.col)
                 self.nbttree = NBTExplorerToolPanel(self.tool.editor, nbtObject=nbtObject, fileName=fName,
                                               dontSaveRootTag=dontSaveRootTag, dataKeyName=dataKeyName,
                                               height=self.max_height, no_header=True, close_text="Go Back",
-                                              close_action=close)
+                                              close_action=close, load_text=None)
                 self.nbtpage = Column([self.nbttree,])
                 self.nbtpage.shrink_wrap()
-                self.pages.add_page("Data", self.nbtpage)
+                self.pages.add_page("NBT Data", self.nbtpage)
                 self.pages.show_page(self.nbtpage)
             else:
                 alert(_("Error while getting player file.\n%s not found.")%(player + '.dat'), doNotTranslate=True)

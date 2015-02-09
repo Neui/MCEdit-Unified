@@ -26,6 +26,7 @@ from glutils import Texture
 from mceutils import showProgress, CheckBoxLabel, alertException, setWindowCaption
 from operation import Operation
 from pymclevel.blockrotation import Roll, RotateLeft, FlipVertical, FlipEastWest, FlipNorthSouth
+from albow import AttrRef
 
 from config import config
 from albow.root import get_root
@@ -33,8 +34,9 @@ import pymclevel
 
 
 class BlockFillOperation(Operation):
-    def __init__(self, editor, destLevel, destBox, blockInfo, blocksToReplace):
+    def __init__(self, editor, destLevel, destBox, blockInfo, blocksToReplace, noData=False):
         super(BlockFillOperation, self).__init__(editor, destLevel)
+        self.noData = noData
         self.destBox = destBox
         self.blockInfo = blockInfo
         self.blocksToReplace = blocksToReplace
@@ -54,7 +56,7 @@ class BlockFillOperation(Operation):
         if self.level.bounds == self.destBox:
             destBox = None
 
-        fill = self.level.fillBlocksIter(destBox, self.blockInfo, blocksToReplace=self.blocksToReplace)
+        fill = self.level.fillBlocksIter(destBox, self.blockInfo, blocksToReplace=self.blocksToReplace, noData=self.noData)
         showProgress("Replacing blocks...", fill, cancel=True)
         self.canUndo = True
 
@@ -85,14 +87,16 @@ class FillToolPanel(Panel):
         replaceLabel.mouse_down = lambda a: self.tool.toggleReplacing()
         replaceLabel.fg_color = (177, 177, 255, 255)
         # replaceLabelRow = Row( (Label(rollkey), replaceLabel) )
-        replaceLabel.tooltipText = "Shortcut: {0}".format(rollkey)
+        replaceLabel.tooltipText = _("Shortcut: {0}").format(rollkey)
         replaceLabel.align = "c"
-
+        self.noDataCheckBox = CheckBoxLabel("Keep Data Intact", ref=AttrRef(self.tool, "noData"))
+        
         col = (self.fillWithLabel,
                self.blockButton,
                # swapRow,
                replaceLabel,
                # self.replaceBlockButton,
+               self.noDataCheckBox,
                self.fillButton)
 
         if replacing:
@@ -102,13 +106,13 @@ class FillToolPanel(Panel):
             self.replaceBlockButton.blockInfo = tool.replaceBlockInfo
             self.replaceBlockButton.action = self.pickReplaceBlock
             self.replaceLabel.text = "Replace with:"
-
+            
             self.swapButton = Button("Swap", action=self.swapBlockTypes, width=self.blockButton.width)
             self.swapButton.fg_color = (255, 255, 255, 255)
             self.swapButton.highlight_color = (60, 255, 60, 255)
             swapkey = config.keys.swap.get()
 
-            self.swapButton.tooltipText = "Shortcut: {0}".format(swapkey)
+            self.swapButton.tooltipText = _("Shortcut: {0}").format(swapkey)
 
             self.fillButton = Button("Replace", action=tool.confirm, width=self.blockButton.width)
             self.fillButton.tooltipText = "Shortcut: Enter"
@@ -117,6 +121,7 @@ class FillToolPanel(Panel):
                    self.blockButton,
                    replaceLabel,
                    self.replaceBlockButton,
+                   self.noDataCheckBox,
                    self.swapButton,
                    self.fillButton)
 
@@ -171,6 +176,9 @@ class FillTool(EditorTool):
         self.optionsPanel = FillToolOptions(self)
         self.pickBlockKey = 0
         self.root = get_root()
+        
+    noData = False
+
 
     @property
     def blockInfo(self):
@@ -246,7 +254,7 @@ class FillTool(EditorTool):
                     blocksToReplace = [self.blockInfo]
 
                 op = BlockFillOperation(self.editor, self.editor.level, self.selectionBox(), self.replaceBlockInfo,
-                                        blocksToReplace)
+                                        blocksToReplace, noData=self.noData)
 
             else:
                 blocksToReplace = []
