@@ -32,6 +32,7 @@ from numpy import array, clip, maximum, zeros
 from regionfile import MCRegionFile
 import version_utils
 import player
+import logging
 
 log = getLogger(__name__)
 
@@ -239,14 +240,14 @@ class AnvilChunk(LightedChunk):
         self.world = chunkData.world
         self.chunkPosition = chunkData.chunkPosition
         self.chunkData = chunkData
+        self._timeLastChanged = time.time()
 
     def savedTagData(self):
         return self.chunkData.savedTagData()
 
     def __str__(self):
-        return u"AnvilChunk, coords:{0}, world: {1}, D:{2}, L:{3}".format(self.chunkPosition, self.world.displayName,
-                                                                          self.dirty, self.needsLighting)
-
+        return u"AnvilChunk, coords:{0}, world: {1}, D:{2}, L:{3}".format(self.chunkPosition, self.world.displayName, self.dirty, self.needsLighting)
+    
     @property
     def needsLighting(self):
         return self.chunkPosition in self.world.chunksNeedingLighting
@@ -902,8 +903,8 @@ class AnvilWorldFolder(object):
         path = path.replace("/", os.path.sep)
         return os.path.join(self.filename, path)
 
-    def getFolderPath(self, path):
-        if not os.path.exists(self.filename):
+    def getFolderPath(self, path, checksExists=True):
+        if checksExists and not os.path.exists(self.filename):
             raise IOError("The file does not exist")
         path = self.getFilePath(path)
         if not os.path.exists(path) and "players" not in path:
@@ -914,7 +915,7 @@ class AnvilWorldFolder(object):
     # --- Region files ---
 
     def getRegionFilename(self, rx, rz):
-        return os.path.join(self.getFolderPath("region"), "r.%s.%s.%s" % (rx, rz, "mca"))
+        return os.path.join(self.getFolderPath("region", False), "r.%s.%s.%s" % (rx, rz, "mca"))
 
     def getRegionFile(self, rx, rz):
         regionFile = self.regionFiles.get((rx, rz))
@@ -1041,6 +1042,7 @@ class MCInfdevOldLevel(ChunkedLevelMixin, EntityLevel):
         self.playerTagCache = {}
         self.players = []
         assert not (create and readonly)
+        self.lastCleanUp = time.time()
 
         if os.path.basename(filename) in ("level.dat", "level.dat_old"):
             filename = os.path.dirname(filename)
@@ -1070,7 +1072,7 @@ class MCInfdevOldLevel(ChunkedLevelMixin, EntityLevel):
             self.unsavedWorkFolder = AnvilWorldFolder(workFolderPath)
 
         # maps (cx, cz) pairs to AnvilChunk
-        self._loadedChunks = weakref.WeakValueDictionary()
+        self._loadedChunks = {}
 
         # maps (cx, cz) pairs to AnvilChunkData
         self._loadedChunkData = {}
@@ -1133,6 +1135,7 @@ class MCInfdevOldLevel(ChunkedLevelMixin, EntityLevel):
             f.write(struct.pack(">q", self.initTime))
             f.flush()
             os.fsync(f.fileno())
+        logging.getLogger().warning("Re-acquired session lock")
 
     def checkSessionLock(self):
         if self.readonly:
@@ -1589,6 +1592,13 @@ class MCInfdevOldLevel(ChunkedLevelMixin, EntityLevel):
         """ read the chunk from disk, load it, and return it."""
 
         chunk = self._loadedChunks.get((cx, cz))
+        if time.time() - self.lastCleanUp > 1.0:
+            for k in self._loadedChunks.keys():
+                ch = self._loadedChunks[k]
+                if time.time() - ch._timeLastChanged > 2.0:
+                    del self._loadedChunks[k]
+            self.lastCleanUp = time.time()
+            
         if chunk is not None:
             return chunk
 
@@ -1690,10 +1700,17 @@ class MCInfdevOldLevel(ChunkedLevelMixin, EntityLevel):
 
         return entities
 
+    def getTileEntitiesInBox(self, box):
+        tileEntites = []
+        for chunk, slices, point in self.getChunkSlices(box):
+            tileEntites += chunk.getTileEntitiesInBox(box)
+
+        return tileEntites
+
     def getTileTicksInBox(self, box):
         tileticks = []
         for chunk, slices, point in self.getChunkSlices(box):
-            tileticks += chunk.getEntitiesInBox(box)
+            tileticks += chunk.getTileTicksInBox(box)
 
         return tileticks
 

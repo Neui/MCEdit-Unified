@@ -43,7 +43,10 @@ class OptionsPanel(Dialog):
             config.settings.superSecretSettings:       config.settings.superSecretSettings.get(),
             config.settings.longDistanceMode:          config.settings.longDistanceMode.get(),
             config.settings.flyMode:                   config.settings.flyMode.get(),
-            config.settings.langCode:                  config.settings.langCode.get()
+            config.settings.langCode:                  config.settings.langCode.get(),
+            config.settings.compassToggle:             config.settings.compassToggle.get(),
+            config.settings.compassSize:               config.settings.compassSize.get(),
+            config.settings.fontProportion:            config.settings.fontProportion.get(),
         }
 
     def initComponents(self):
@@ -80,11 +83,14 @@ class OptionsPanel(Dialog):
                                             ref=config.settings.maxCopies, width=100, min=0,
                                             tooltipText="Maximum number of copied objects.")
 
+        compassSizeRow = mceutils.IntInputRow("Compass Size (%): ",
+                                            ref=config.settings.compassSize, width=100, min=0, max=100)
+
         # FONT SIZE
-#        fontProportion = mceutils.IntInputRow("Fonts Proportion (%): ",
-#                                            ref=config.settings.fontProportion, width=100, min=0,
-#                                            tooltipText="Fonts sizing proportion. The number is a percentage.")
-#        albow.resource.font_proportion = config.settings.fontProportion.get()
+        fontProportion = mceutils.IntInputRow("Fonts Proportion (%): ",
+                                            ref=config.settings.fontProportion, width=100, min=0,
+                                            tooltipText="Fonts sizing proportion. The number is a percentage.\nRestart needed!")
+        albow.resource.font_proportion = config.settings.fontProportion.get()
 
         invertRow = mceutils.CheckBoxLabel("Invert Mouse",
                                            ref=config.controls.invertMousePitch,
@@ -105,6 +111,9 @@ class OptionsPanel(Dialog):
         rotateBlockBrushRow = mceutils.CheckBoxLabel("Rotate block with brush",
                                                         ref=config.settings.rotateBlockBrush,
                                                         tooltipText="When rotating your brush, also rotate the orientation of the block your brushing with")
+
+        compassToggleRow =mceutils.CheckBoxLabel("Toggle compass",
+                                                        ref=config.settings.compassToggle)
 
         windowSizeRow = mceutils.CheckBoxLabel("Window Resize Alert",
                                                ref=config.settings.shouldResizeAlert,
@@ -163,7 +172,8 @@ class OptionsPanel(Dialog):
             mouseSpeedRow,
             undoLimitRow,
             maxCopiesRow,
-#            fontProportion, # FONT SIZE
+            compassSizeRow,
+            fontProportion, # FONT SIZE
         )
 
         options = (
@@ -176,6 +186,7 @@ class OptionsPanel(Dialog):
                     staticCommandsNudgeRow,
                     moveSpawnerPosNudgeRow,
                     rotateBlockBrushRow,
+                    compassToggleRow,
                     langButtonRow,
                     ) + (
                         ((sys.platform == "win32" and pygame.version.vernum == (1, 9, 1)) and (windowSizeRow,) or ())
@@ -276,19 +287,10 @@ class OptionsPanel(Dialog):
         return True
 
     def dismiss(self, *args, **kwargs):
-        """Used to change the language."""
-        lng = config.settings.langCode.get()
-        try:
-            o, n, sc = albow.translate.setLang(lng)
-        except:
-            o, n, sc = albow.translate.setLang(self.langs[lng])
-        if not sc and n != "en_US":
-            albow.alert(_("{} is not a valid language").format("%s [%s]" % (self.sgnal[n], n)))
-            if o == n:
-                o = "en_US"
-            config.settings.langCode.set(o)
-            albow.translate.setLang(o)
-        elif o != n:
+        """Used to change the language and the font proportion"""
+        lang = config.settings.langCode.get() == self.saveOldConfig[config.settings.langCode]
+        font = config.settings.fontProportion.get() == self.saveOldConfig[config.settings.fontProportion]
+        if not font or not lang:
             editor = self.mcedit.editor
             if editor and editor.unsavedEdits:
                 result = albow.ask("You must restart MCEdit to see language changes", ["Save and Restart", "Restart", "Later"])
@@ -361,6 +363,7 @@ class OptionsPanel(Dialog):
         config.save()
 
     def dispatch_key(self, name, evt):
+        super(OptionsPanel, self).dispatch_key(name, evt)
         if name == "key_down":
             keyname = self.get_root().getKey(evt)
             if keyname == 'Escape':

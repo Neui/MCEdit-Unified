@@ -120,7 +120,6 @@ class BlockCopyOperation(Operation):
         if self.level.saving:
             alert(_("Cannot perform action while saving is taking place"))
             return
-        sourceBox = self.sourceBox
 
         if recordUndo:
             self.canUndo = True
@@ -272,7 +271,7 @@ class CloneToolPanel(Panel):
 
         repeatField = IntField(ref=AttrRef(tool, 'repeatCount'))
         repeatField.min = 1
-        repeatField.max = 50
+        repeatField.max = 1000
 
         repeatRow = Row((
             Label("Repeat"), repeatField
@@ -280,29 +279,17 @@ class CloneToolPanel(Panel):
         self.repeatField = repeatField
 
         scaleField = FloatField(ref=AttrRef(tool, 'scaleFactor'))
-        scaleField.min = 0.125
+        scaleField.min = 0.1
         scaleField.max = 8
-        dv = scaleField.decrease_value
-        iv = scaleField.increase_value
 
-        def scaleFieldDecrease():
-            if 1 / 8.0 < scaleField.value <= 1.0:
-                scaleField.value *= 0.5
-            else:
-                dv()
-
-        def scaleFieldIncrease():
-            if scaleField.value < 1.0:
-                scaleField.value *= 2.0
-            else:
-                iv()
-
-        scaleField.decrease_value = scaleFieldDecrease
-        scaleField.increase_value = scaleFieldIncrease
-
-        scaleRow = Row((
-            Label("Scale Factor"), scaleField
-        ))
+        if self.transformEnable():
+            scaleRow = Row((
+                Label("Scale Factor"), scaleField
+            ))
+        else:
+            scaleRow = Row((
+                Label("Scale Factor: 1.0"),
+            ))
 
         self.scaleField = scaleField
 
@@ -380,7 +367,7 @@ class CloneToolPanel(Panel):
             cols = buildPage(rotaterollRow, flipmirrorRow, alignRow, self.offsetInput, repeatRow, scaleRow, copyAirRow,
                       copyWaterRow, copyBiomesRow, staticCommandsRow, moveSpawnerPosRow, regenerateUUIDRow)
         else:
-            cols = buildPage(rotaterollRow, flipmirrorRow, alignRow, self.nudgeButton, copyAirRow, copyWaterRow, copyBiomesRow,
+            cols = buildPage(rotaterollRow, flipmirrorRow, alignRow, self.nudgeButton, scaleRow, copyAirRow, copyWaterRow, copyBiomesRow,
                              staticCommandsRow, moveSpawnerPosRow, regenerateUUIDRow)
 
         row = Row(cols, spacing=0, margin=2)
@@ -517,7 +504,6 @@ class CloneTool(EditorTool):
             self.panel.offsetInput.setCoords(self.destPoint - self.selectionBox().origin)
 
     def offsetChanged(self):
-
         if self.panel:
             if not self.panel.useOffsetInput:
                 return
@@ -532,7 +518,6 @@ class CloneTool(EditorTool):
         return not (self.selectionBox() is None)
 
     def cancel(self):
-
         self.discardPreviewer()
         if self.panel:
             self.panel.parent.remove(self.panel)
@@ -595,15 +580,12 @@ class CloneTool(EditorTool):
         blocks = self.originalLevel.Blocks
         data = self.originalLevel.Data
 
-        if factor < 1.0:
-            roundedShape = map(lambda x: int(int(x * factor) / factor), oldshape)
-            roundedSlices = map(lambda x: slice(0, x), roundedShape)
-            blocks = blocks[roundedSlices]
-            data = data[roundedSlices]
-        else:
-            roundedShape = oldshape
+        roundedShape = oldshape
 
         newshape = map(lambda x: int(x * factor), oldshape)
+        for i, part in enumerate(newshape):
+            if part == 0:
+                newshape[i] = 1
         xyzshape = newshape[0], newshape[2], newshape[1]
         newlevel = pymclevel.MCSchematic(xyzshape, mats=self.editor.level.materials)
 
@@ -789,7 +771,6 @@ class CloneTool(EditorTool):
     draggingColor = (0.77, 1.0, 0.55, 0.05)
 
     def drawToolReticle(self):
-
         if self.level is None:
             return
 
@@ -1148,7 +1129,7 @@ class ConstructionToolOptions(ToolOptions):
 class ConstructionTool(CloneTool):
     surfaceBuild = True
     toolIconName = "crane"
-    tooltipText = "Import"
+    tooltipText = "Import\nRight-click for options"
 
     panelClass = ConstructionToolPanel
 
@@ -1159,7 +1140,8 @@ class ConstructionTool(CloneTool):
         pass
 
     def updateSchematic(self):
-        pass
+        self.originalLevel = self.level
+        self.scaleFactor = 1.0
 
     def quickNudge(self, nudge):
         if config.fastNudgeSettings.importWidth.get():
@@ -1183,6 +1165,7 @@ class ConstructionTool(CloneTool):
     def showPanel(self):
         CloneTool.showPanel(self)
         self.panel.performButton.text = "Import"
+        self.updateSchematic()
 
     def toolReselected(self):
         self.toolSelected()
@@ -1234,6 +1217,7 @@ class ConstructionTool(CloneTool):
         # xxx mouthful
         if clipFilename:
             self.loadSchematic(clipFilename)
+            return
 
         print "Canceled"
         if self.level is None:

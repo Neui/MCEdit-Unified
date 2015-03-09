@@ -324,8 +324,8 @@ o151 Pick Block (Hold + Click)
 t151 Kies blok
 o152 Select Chunks (Hold)
 t152 Selecteer chunks
-o153 Deselect Chunks (hold)
-t153 Deselecteer Chunks
+o153 Deselect Chunks (Hold)
+t153 
 o154 Snap Clone to Axis (Hold)
 t154 Plak kloon aan as
 o155 Blocks-Only Modifier (Hold)
@@ -548,7 +548,10 @@ t261 Diepte:
 o262 Only Change Natural Earth
 t262 Verandeer alleen natuurlijke grond
 o263 Import
+Right-click for options
 t263 Importeer
+
+Right-click for options (?)
 o264 x
 t264 x
 o265 y
@@ -765,8 +768,13 @@ t367 Naam van Dorpeling
 o368 General Trade
 t368 Gewone Handelsoptie
 o369       Rotate the Position of your Trader
+
 *Can only be used if Not Move is checked*
-t369        Draai de Positie van je Handelaar 
+t369        Draai de Positie van je Handelaar
+
+
+
+
 *Kan alleen gebruikt worden als Niet Bewegen is aangevinkt*
 o370 Y-Axis
 t370 Y-As
@@ -1056,7 +1064,10 @@ t506 Speler
 o507 Chunk Control
 t507 Chunk Menu
 o508 Move Spawn Point
+Right-click for options
 t508 Beweeg Spawnpunt
+
+Right-click for options (?)
 o509 Goto Spawn
 t509 Ga naar Spawn
 o510 Take a Screenshot
@@ -1296,6 +1307,7 @@ No key means right click to fast nudge.
 Press ESC to cancel.
 t625 
 o626 {0} is not a modifier. Press a new key.
+
 Press ESC to cancel.
 t626 
 o627 Movement keys can't use Ctrl or be with modifiers. Press a new key.
@@ -1484,69 +1496,179 @@ o711 Double-click or use the button below to edit the NBT Data.
 t711 
 o712 Go Back
 t712 
-o712 Upload to FTP Server
-t712 
-o713 There are {0} unsaved changes.
+o713 Upload to FTP Server
 t713 
-o714 Save and Quit
+o714 There are {0} unsaved changes.
 t714 
-o715 Refresh All Player Names
+o715 Save and Quit
 t715 
-o716 Ticks mode accouplement
+o716 Refresh All Player Names
 t716 
-o717 Results
+o717 Ticks mode accouplement
 t717 
-o718 Smooth - 3D
+o718 Results
 t718 
-o719 Smoothing
+o719 Smooth - 3D
 t719 
-o720 Made by Sethbling
+o720 Smoothing
 t720 
-o721 NBT Data
+o721 Made by Sethbling
 t721 
-o722 Edit NBT Data
+o722 NBT Data
 t722 
-o723 Open the NBT Explorer to edit player's attributes and inventory
+o723 Edit NBT Data
 t723 
-o724 Not yet implemented.
-Use the NBT Explorer to edit this player.
+o724 Open the NBT Explorer to edit player's attributes and inventory
 t724 
-o725 Error while getting player file.
-%s not found.
+o725 Not yet implemented.
+Use the NBT Explorer to edit this player.
 t725 
-o726 Spawn point fixed. Changes: 
-
-
+o726 Error while getting player file.
+%s not found.
 t726 
-o727 <Selection>
+o727 Spawn point fixed. Changes: 
+
+
 t727 
-o728 <Miscellaneous>
+o728 <Selection>
 t728 
-o729 Take Screenshot
+o729 <Miscellaneous>
 t729 
-o730 Double-click to go to this item.
+o730 Take Screenshot
 t730 
-o731 Save and Restart
+o731 Double-click to go to this item.
 t731 
-o732 From FTP Server
+o732 Save and Restart
 t732 
-o733 <Chunk Control Tool>
+o733 From FTP Server
 t733 
-o734 Select Chunks
+o734 <Chunk Control Tool>
 t734 
-o735 No matching blocks/tile entities found
+o735 Select Chunks
 t735 
-o736 Choose a filter, then click Filter or press Enter to apply it.
+o736 
+No matching blocks/tile entities found
 t736 
-o737 Click to set this item down.
+o737 Choose a filter, then click Filter or press Enter to apply it.
 t737 
-o738 Mousewheel to move along the third axis. Hold {0} to only move along one axis.
+o738 Click to set this item down.
 t738 
-o739 Click and drag to reposition the item. Double-click to pick it up. Click Clone or press Enter to confirm.
+o739 Mousewheel to move along the third axis. Hold {0} to only move along one axis.
 t739 
-o740 Selection exceeds {0:n} blocks. Increase the block buffer setting and try again.
+o740 Click and drag to reposition the item. Double-click to pick it up. Click Clone or press Enter to confirm.
 t740 
-o741 Copying to clone buffer...
+o741 Selection exceeds {0:n} blocks. Increase the block buffer setting and try again.
 t741 
-o742 Import a schematic or level...
+o742 Copying to clone buffer...
 t742 
+o743 Import a schematic or level...
+t743 
+o744 Could not find the Minecraft saves directory!
+
+({0} was not found or is not a directory)
+t744 
+o745 I don't know how to open {0}:
+
+{1!r}
+t745 
+o746 Checking for server updates...
+t746 
+o747 Time left: {0}
+t747 
+o748 Untitled World
+t748 
+o749 Name this new world.
+t749 
+o750 Minecraft World *.*  
+t750 
+o751 Generating chunks...
+t751 
+o752 World created. To expand this infinite world, explore the world in Minecraft or use the Chunk Control tool to add or delete chunks.
+t752 
+o753 Analyzing {0} blocks...
+t753 
+o754 Save to file...
+t754 
+o755 Fill with Air
+t755 
+o756 Delete Chunks
+t756 
+o757 Recording undo...
+t757 
+o758 Replacing blocks...
+t758 
+o759 REPLACING - 
+t759 
+o760 Copying chunk %s...
+t760 
+o761 Continue with undo disabled?
+t761 
+o762 Continue
+t762 
+o763 Canceled
+t763 
+o764 DELETING - 
+t764 
+o765 Deleting {0} blocks
+t765 
+o766 WORKING - 
+t766 
+o767 Removing Tile Ticks...
+t767 
+o768 Removing entities...
+t768 
+o769 Copying {0:n} blocks...
+t769 
+o770 Undoing...
+t770 
+o771 UNDOING - 
+t771 
+o772 Really delete these chunks? This cannot be undone.
+t772 
+o773 Save these chunks and remove the rest? This cannot be undone.
+t773 
+o774 Lighting {0} chunks...
+t774 
+o775 Create chunks using the settings above? This cannot be undone.
+t775 
+o776 Add
+t776 
+o777 New child
+t777 
+o778 Rename
+t778 
+o779 Paste as child
+t779 
+o780 You are deleting a chunk-shaped selection. Fill the selection with Air, or delete the chunks themselves?
+t780 
+o781 Screenshot taken and saved as 
+t781 
+o782 Fonts Proportion (%): 
+t782 
+o783 Fonts sizing proportion. The number is a percentage.
+Restart needed!
+t783 
+o784 Save As
+t784 
+o785 Name the new copy:
+t785 
+o786 Copying %0.1f million blocks
+t786 
+o787 Minecraft will randomly move your spawn point if you try to respawn in a column where there are no blocks at Y=63 and Y=64. Only uncheck this box if Minecraft is changed.
+t787 
+o788 Keep Data Intact
+t788 
+o789 This pulls skins from the online server, so this may take a while
+t789 
+o790 Session:
+t790 
+o791 Session Lock is being used by Minecraft
+t791 
+o792 Session Lock is being used by MCEdit
+t792 
+o793 Show Player Skins
+t793 
+o794 Show player skins while editing the world
+t794 
+o795 Compass Size (%): 
+t795 

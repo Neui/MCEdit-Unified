@@ -514,6 +514,9 @@ class ChunkCalculator(object):
         try:
             chunk = level.getChunk(cx, cz)
         except Exception, e:
+            if "Session lock lost" in e.message:
+                yield
+                return
             logging.warn(u"Error reading chunk: %s", e)
             yield
             return

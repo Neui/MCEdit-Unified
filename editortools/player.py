@@ -128,8 +128,13 @@ class PlayerAddOperation(Operation):
             alert("Name to short. Minimum name length is 4.")
             return
         try:
+            '''
+            print "Player: \""+str(self.player)+"\""
             self.uuid = version_utils.playercache.getPlayerFromPlayername(self.player)
+            print "UUID: \""+str(self.uuid)+"\""
             self.player = version_utils.playercache.getPlayerFromUUID(self.uuid)  #Case Corrected
+            '''
+            self.uuid, self.player, other_uuid = version_utils.playercache.getPlayerInfo(self.player)
         except:
             action = ask("Could not get {}'s UUID. Please make sure that you are connected to the internet and that the player {} exists.".format(self.player, self.player), ["Enter UUID manually", "Cancel"])
             if action != "Enter UUID manually":
@@ -374,6 +379,9 @@ class PlayerPositionPanel(Panel):
             if not self.level.oldPlayerFolderFormat:
                 for player in players:
                     if player != "Player" and player != "[No players]":
+                        if player[4] == "-":
+                            os.rename(os.path.join(self.level.worldFolder.getFolderPath("playerdata"), player+".dat"), os.path.join(self.level.worldFolder.getFolderPath("playerdata"), player.replace("-", "", 1)+".dat"))
+                            player = player.replace("-", "", 1)
                         self.player_UUID[version_utils.playercache.getPlayerFromUUID(player)] = player
                 if "Player" in players:
                     self.player_UUID["Player"] = "Player"
@@ -388,7 +396,8 @@ class PlayerPositionPanel(Panel):
         tab_height = self.pages.tab_height
 
         max_height = tab_height + self.tool.editor.mainViewport.height - self.tool.editor.toolbar.height - self.tool.editor.subwidgets[0].height - self.pages.margin * 2
-        max_height = min(max_height, 500)
+        #-# Uncomment the following line to have a maximum height for this panel.
+        # max_height = min(max_height, 500)
 
         self.editNBTDataButton = Button("Edit NBT Data", action=self.editNBTData, tooltipText="Open the NBT Explorer to edit player's attributes and inventory")
         addButton = Button("Add Player", action=self.tool.addPlayer)
@@ -402,9 +411,11 @@ class PlayerPositionPanel(Panel):
         btns = Column([self.editNBTDataButton, addButton, removeButton, gotoButton, gotoCameraButton, moveButton, moveToCameraButton, reloadSkin], margin=0, spacing=2)
         h = max_height - btns.height - self.pages.margin * 2 - 2 - self.font.size(" ")[1] * 2
 
-        tableview = TableView(nrows=6, header_height=self.font.size(" ")[1], columns=[
-            TableColumn("Player Name(s):", 200),
-        ], height=h)
+        tableview = TableView(nrows=(h - (self.font.size(" ")[1] * 2.5)) / self.font.size(" ")[1],
+                              header_height=self.font.size(" ")[1],
+                              columns=[TableColumn("Player Name(s):", 200),],
+                              height=h,
+                             )
         tableview.index = 0
         tableview.num_rows = lambda: len(players)
         tableview.row_data = lambda i: (players[i],)
@@ -587,28 +598,33 @@ class PlayerPositionTool(EditorTool):
         EditorTool.__init__(self, *args)
         self.reloadTextures()
 
-        textureVertices = numpy.array(
+        textureVerticesHead = numpy.array(
             (
-                24, 16,
-                24, 8,
-                32, 8,
-                32, 16,
+                # Backside of Head
+                24, 16, # Bottom Left
+                24, 8, # Top Left
+                32, 8, # Top Right
+                32, 16, # Bottom Right
 
+                # Front of Head
                 8, 16,
                 8, 8,
                 16, 8,
                 16, 16,
 
+                #
                 24, 0,
                 16, 0,
                 16, 8,
                 24, 8,
 
+                #
                 16, 0,
                 8, 0,
                 8, 8,
                 16, 8,
 
+                #
                 8, 8,
                 0, 8,
                 0, 16,
@@ -620,13 +636,52 @@ class PlayerPositionTool(EditorTool):
                 16, 8,
 
             ), dtype='f4')
+        
+        textureVerticesHat = numpy.array(
+            (
+                56, 16,
+                56, 8,
+                64, 8,
+                64, 16,
+                
+                48, 16,
+                48, 8,
+                40, 8,
+                40, 16,
+                
+                56, 0,
+                48, 0,
+                48, 8,
+                56, 8,
+                
+                48, 0,
+                40, 0,
+                40, 8,
+                48, 8,
+                
+                40, 8,
+                32, 8,
+                32, 16,
+                40, 16,
+                
+                48, 16,
+                56, 16,
+                56, 8,
+                48, 8,
+                
+            ), dtype='f4')
+        
 
-        textureVertices.shape = (24, 2)
+        textureVerticesHead.shape = (24, 2)
+        textureVerticesHat.shape = (24, 2)
 
-        textureVertices *= 4
-        textureVertices[:, 1] *= 2
+        textureVerticesHead *= 4
+        textureVerticesHead[:, 1] *= 2
+        
+        textureVerticesHat *= 4
+        textureVerticesHat[:, 1] *= 2
 
-        self.texVerts = textureVertices
+        self.texVerts = (textureVerticesHead, textureVerticesHat) 
 
         self.playerPos = {}
         self.playerTexture = {}
@@ -695,8 +750,10 @@ class PlayerPositionTool(EditorTool):
 
                 self.playerPos[pos] = player
                 self.revPlayerPos[player] = pos
-                if player != "Player":
+                if player != "Player" and config.settings.downloadPlayerSkins.get():
                     self.playerTexture[player] = loadPNGTexture(version_utils.getPlayerSkin(player, force=False))
+                else:
+                    self.playerTexture[player] = self.charTex
                 x, y, z = pos
                 GL.glPushMatrix()
                 GL.glTranslate(x, y, z)
@@ -720,19 +777,26 @@ class PlayerPositionTool(EditorTool):
         GL.glDisable(GL.GL_DEPTH_TEST)
 
     def drawCharacterHead(self, x, y, z, realCoords=None):
-        # FIXME: Top head texture is rotated incorrectly
-        # TODO: Possible add hat layer support
         GL.glEnable(GL.GL_CULL_FACE)
         origin = (x - 0.25, y - 0.25, z - 0.25)
         size = (0.5, 0.5, 0.5)
         box = FloatBox(origin, size)
+        
+        hat_origin = (x - 0.275, y - 0.275, z - 0.275)
+        hat_size = (0.55, 0.55, 0.55)
+        hat_box = FloatBox(hat_origin, hat_size)
 
-        if realCoords is not None and self.playerPos[realCoords] != "Player":
+        if realCoords is not None and self.playerPos[realCoords] != "Player" and config.settings.downloadPlayerSkins.get():
             drawCube(box,
-                     texture=self.playerTexture[self.playerPos[realCoords]], textureVertices=self.texVerts)
+                     texture=self.playerTexture[self.playerPos[realCoords]], textureVertices=self.texVerts[0])
+            GL.glEnable(GL.GL_BLEND)
+            GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+            drawCube(hat_box,
+                     texture=self.playerTexture[self.playerPos[realCoords]], textureVertices=self.texVerts[1])
+            GL.glDisable(GL.GL_BLEND)
         else:
             drawCube(box,
-                     texture=self.charTex, textureVertices=self.texVerts)
+                     texture=self.charTex, textureVertices=self.texVerts[0])
         GL.glDisable(GL.GL_CULL_FACE)
 
     #@property
@@ -803,7 +867,7 @@ class PlayerSpawnPositionOptions(ToolOptions):
 class PlayerSpawnPositionTool(PlayerPositionTool):
     surfaceBuild = True
     toolIconName = "playerspawn"
-    tooltipText = "Move Spawn Point"
+    tooltipText = "Move Spawn Point\nRight-click for options"
 
     def __init__(self, *args):
         PlayerPositionTool.__init__(self, *args)

@@ -293,15 +293,15 @@ class MCEdit(GLViewport):
                      showLicense,
                      os.path.join(directories.getDataDir(), "LICENSE.txt")),
                     ("",
-                     "Config Files Folder",
+                     "Config Files",
                      showCacheDir,
                      directories.getCacheDir()),
                     ("",
-                     "Screenshots Folder",
+                     "Screenshots",
                      showScreenshotsDir,
                      os.path.join(directories.parentDir, "screenshots")),
                     ("",
-                     "Refresh All Player Names",
+                     "Refresh Player Names",
                      refresh)
                    ])
 
@@ -354,10 +354,10 @@ class MCEdit(GLViewport):
 
     shouldResizeAlert = config.settings.shouldResizeAlert.property()
 
-    def loadFile(self, filename):
+    def loadFile(self, filename, addToRecent=True):
         if os.path.exists(filename):
             try:
-                self.editor.loadFile(filename)
+                self.editor.loadFile(filename, addToRecent=addToRecent)
             except Exception, e:
                 logging.error(u'Failed to load file {0}: {1!r}'.format(
                     filename, e))

@@ -13,18 +13,15 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE."""
 #-# Modified by D.C.-G. for translation purpose
 #.# Marks the layout modifications. -- D.C.-G.
-import sys
-from compass import CompassOverlay
 from editortools.thumbview import ThumbView
 from pymclevel.infiniteworld import SessionLockLost
-from raycaster import TooFarException
-import raycaster
 import keys
 import pygame
 from albow.fields import FloatField
 from mceutils import ChoiceButton, TextInputRow
 from editortools.blockview import BlockButton
-from ftp_client import FTPClient
+import ftp_client
+import sys
 
 """
 leveleditor.py
@@ -61,18 +58,20 @@ import renderer
 import directories
 import panels
 import viewports
+import shutil
 
-from math import isnan
 from os.path import dirname, isdir
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 
 from OpenGL import GL
-from OpenGL import GLU
 
-from albow import alert, ask, AttrRef, Button, Column, get_font, Grid, input_text, IntField, Menu, root, Row, \
+from albow import alert, ask, AttrRef, Button, Column, Grid, input_text, IntField, Menu, root, Row, \
     TableColumn, TableView, TextFieldWrapped, TimeField, Widget, CheckBox
-from albow.controls import Label, SmallValueDisplay, ValueDisplay
+import albow.resource
+albow.resource.font_proportion = config.settings.fontProportion.get()
+get_font = albow.resource.get_font
+from albow.controls import Label, SmallValueDisplay, ValueDisplay, Image
 from albow.dialogs import Dialog, QuickDialog, wrapped_label
 from albow.openglwidgets import GLOrtho, GLViewport
 from albow.translate import _
@@ -87,6 +86,7 @@ from mcplatform import askSaveFile, platform_open
 from pymclevel.minecraft_server import alphanum_key  # ?????
 from renderer import MCRenderer
 from pymclevel.entity import Entity
+from pymclevel.infiniteworld import AnvilWorldFolder
 
 try:
     import resource  # @UnresolvedImport
@@ -235,9 +235,14 @@ class LevelEditor(GLViewport):
                                      tooltipText=_("Shortcut: {0}").format(config.keys.toggleView.get()))
 
         self.recordUndoButton = mceutils.CheckBoxLabel("Record Undo", ref=AttrRef(self, 'recordUndo'))
+        
+        # TODO: Mark
+        self.sessionLockLock = Image(os.path.join("toolicons", "session_good.png"))
+        self.sessionLockLock.tooltipText = "Session Lock is being used by MCEdit"
+        self.sessionLockLabel = Label("Session:", margin=0)
 
         row = (self.mcEditButton, self.viewDistanceDown, Label("View Distance:"), self.viewDistanceReadout, self.viewDistanceUp,
-               self.viewButton, self.viewportButton, self.recordUndoButton)
+               self.viewButton, self.viewportButton, self.recordUndoButton, Label("Session Lock Status:"), self.sessionLockLock)
 
         # row += (Button("CR Info", action=self.showChunkRendererInfo), )
         self.topRow = row = Row(row)
@@ -269,6 +274,13 @@ class LevelEditor(GLViewport):
         self.toolbar.selectTool(0)
 
         self.controlPanel = panels.ControlPanel(self)
+        
+        logger = logging.getLogger()
+
+        adapter = logging.StreamHandler(sys.stdout)
+        adapter.addFilter(LogFilter(self))
+        logger.addHandler(adapter)
+        self.revertPlayerSkins = False
 
     def __del__(self):
         self.deleteAllCopiedSchematics()
@@ -903,7 +915,7 @@ class LevelEditor(GLViewport):
         GL.glDisable(GL.GL_BLEND)
         GL.glDisable(GL.GL_DEPTH_TEST)
 
-    def loadFile(self, filename):
+    def loadFile(self, filename, addToRecent=True):
         """
         Called when the user picks a level using Load World or Open File.
         """
@@ -930,8 +942,15 @@ class LevelEditor(GLViewport):
             return
 
         assert level
-
-        self.mcedit.addRecentWorld(filename)
+        
+        if addToRecent:
+            self.mcedit.addRecentWorld(filename)
+            
+        if len(level.players) >= 50 and config.settings.downloadPlayerSkins.get():
+            result = ask("MCEdit has detected that there are a large amount of players in this world, would you like to still download skins (This can take a decent amount of time)", responses=["Download Skins", "Don't Download"])
+            if result == "Don't Download":
+                config.settings.downloadPlayerSkins.set(False)
+                self.revertPlayerSkins = True
 
         try:
             self.currentViewport.cameraPosition = level.getPlayerPosition()
@@ -1007,8 +1026,9 @@ class LevelEditor(GLViewport):
             menu = Menu("", dimensionsMenu)
 
             def presentMenu():
-                x, y = self.netherButton.topleft
-                dimIdx = menu.present(self, (x, y - menu.height))
+                x, y = self.netherButton.bottomleft
+                x += (self.netherButton.width - menu.width) / 2
+                dimIdx = menu.present(self, (x, y))
                 if dimIdx == -1:
                     return
                 dimNo = int(dimensionsMenu[dimIdx][1])
@@ -1017,7 +1037,7 @@ class LevelEditor(GLViewport):
             self.netherButton = Button("Goto Dimension", action=presentMenu)
             self.remove(self.topRow)
             self.topRow = Row((self.mcEditButton, self.viewDistanceDown, Label("View Distance:"), self.viewDistanceReadout, self.viewDistanceUp,
-               self.viewButton, self.viewportButton, self.recordUndoButton, self.netherButton))
+               self.viewButton, self.viewportButton, self.recordUndoButton, self.netherButton, Row((self.sessionLockLabel, self.sessionLockLock))))
             self.add(self.topRow, 0)
 
         else:
@@ -1025,6 +1045,7 @@ class LevelEditor(GLViewport):
             self.topRow = Row((self.mcEditButton, self.viewDistanceDown, Label("View Distance:"), self.viewDistanceReadout, self.viewDistanceUp,
                self.viewButton, self.viewportButton, self.recordUndoButton))
             self.add(self.topRow, 0)
+            self.level.sessionLockLock = self.sessionLockLock
 
         if len(list(self.level.allChunks)) == 0:
             resp = ask(
@@ -1135,6 +1156,20 @@ class LevelEditor(GLViewport):
 
         self.recordUndo = True
         self.clearUnsavedEdits(True)
+
+    @mceutils.alertException
+    def saveAs(self):
+        shortName = os.path.split(os.path.split(self.level.filename)[0])[1]
+        filename = mcplatform.askSaveFile(directories.minecraftSaveFileDir, _("Name the new copy:"),
+                                          shortName, _('Minecraft World\0*.*\0\0'), "")
+        if filename is None:
+            return
+        shutil.copytree(self.level.worldFolder.filename, filename)
+        self.level.worldFolder = AnvilWorldFolder(filename)
+        self.level.filename = os.path.join(self.level.worldFolder.filename, "level.dat")
+        self.level.acquireSessionLock()
+        self.saveFile()
+        self.initWindowCaption()
 
     def addUnsavedEdit(self):
         if self.unsavedEdits:
@@ -1598,6 +1633,8 @@ class LevelEditor(GLViewport):
             self.showWorldInfo()
         if keyname == config.keys.gotoPanel.get():
             self.showGotoPanel()
+        if keyname == config.keys.saveAs.get():
+            self.saveAs()
 
         if keyname == config.keys.exportSelection.get():
             self.selectionTool.exportSelection()
@@ -1742,6 +1779,9 @@ class LevelEditor(GLViewport):
         self.mcedit.removeEditor()
         self.controlPanel.dismiss()
         display.set_caption("MCEdit ~ " + release.get_version())
+        if self.revertPlayerSkins:
+            config.settings.downloadPlayerSkins.set(True)
+            self.revertPlayerSkins = False
         
     # TODO: Load marker
     def loadWorldFromFTP(self):
@@ -1766,15 +1806,16 @@ class LevelEditor(GLViewport):
         widget.shrink_wrap()
         d = Dialog(widget, ["Connect", "Cancel"])
         if d.present() == "Connect":
-            print "IP: "+str(ftp_ip_field.get_text())
-            print "Username: "+str(ftp_user_field.get_text())
-            print "Password: "+str(ftp_pass_field.get_text())
             if ftp_user_field.get_text() == "" and ftp_pass_field.get_text() == "":
-                self._ftp_client = FTPClient(ftp_ip_field.get_text())
+                self._ftp_client = ftp_client.FTPClient(ftp_ip_field.get_text())
             else:
-                self._ftp_client = FTPClient(ftp_ip_field.get_text(), username=ftp_user_field.get_text(), password=ftp_pass_field.get_text())
+                try:
+                    self._ftp_client = ftp_client.FTPClient(ftp_ip_field.get_text(), username=ftp_user_field.get_text(), password=ftp_pass_field.get_text())
+                except ftp_client.InvalidCreditdentialsException as e:
+                    alert(e.message)
+                    return
             self._ftp_client.safe_download()
-            self.mcedit.loadFile(os.path.join(self._ftp_client.get_level_path(), 'level.dat'))
+            self.mcedit.loadFile(os.path.join(self._ftp_client.get_level_path(), 'level.dat'), addToRecent=False)
             self.world_from_ftp = True
             
     def uploadChanges(self):
@@ -1787,9 +1828,6 @@ class LevelEditor(GLViewport):
                 if answer == "Cancel":
                     return
             self._ftp_client.upload()
-            world_list = self.mcedit.recentWorlds()
-            del world_list[0]
-            self.mcedit.setRecentWorlds(world_list)
             self.clearUnsavedEdits()
             self.unsavedEdits = 0
             self.root.fix_sticky_ctrl()
@@ -1806,6 +1844,46 @@ class LevelEditor(GLViewport):
             self._ftp_client.cleanup()
         else:
             alert("This world was not downloaded from a FTP server. Uploading worlds that were not downloaded from a FTP server is currently not possible")
+        '''
+        else:
+            if self.unsavedEdits:
+                answer = ask("Save unsaved edits before closing?", ["Cancel", "Don't Save", "Save"], default=-1, cancel=0)
+                self.root.fix_sticky_ctrl()
+                if answer == "Save":
+                    self.saveFile()
+                if answer == "Cancel":
+                    return
+            widget = Widget()
+        
+            ftp_ip_lbl = Label("FTP Server IP:")
+            ftp_ip_field = TextFieldWrapped(width=400)
+            ip_row = Row((ftp_ip_lbl, ftp_ip_field))
+        
+            ftp_user_lbl = Label("FTP Username:")
+            ftp_user_field = TextFieldWrapped(width=400)
+            user_row = Row((ftp_user_lbl, ftp_user_field))
+        
+            ftp_pass_lbl = Label("FTP Password:")
+            ftp_pass_field = TextFieldWrapped(width=400)
+            pass_row = Row((ftp_pass_lbl, ftp_pass_field))
+        
+            note_creds = Label("NOTE: MCEdit-Unified will not use any FTP server info other than to login to the server")
+            note_wait = Label("Please wait while MCEdit-Unified upload the world. The world will be closed once completed")
+            col = Column((ip_row, user_row, pass_row, note_creds, note_wait))
+            widget.add(col)
+            widget.shrink_wrap()
+            d = Dialog(widget, ["Upload", "Cancel"])
+            if d.present() == "Upload":
+                if ftp_user_field.get_text() == "" and ftp_pass_field.get_text() == "":
+                    self._ftp_client = ftp_client.FTPClient(ftp_ip_field.get_text())
+                else:
+                    try:
+                        self._ftp_client = ftp_client.FTPClient(ftp_ip_field.get_text(), username=ftp_user_field.get_text(), password=ftp_pass_field.get_text())
+                    except ftp_client.InvalidCreditdentialsException as e:
+                        alert(e.message)
+                        return
+                    self._ftp_client.upload_new_world(self.level)
+        '''
 
     def repairRegions(self):
         worldFolder = self.level.worldFolder
@@ -1993,11 +2071,13 @@ class LevelEditor(GLViewport):
         worldInfoPanel.shrink_wrap()
 
         def dispatchKey(name, evt):
+            dispatch_key_saved(name, evt)
             if name == "key_down":
                 keyname = self.get_root().getKey(evt)
                 if keyname == 'Escape':
                     cancel()
 
+        dispatch_key_saved = worldInfoPanel.dispatch_key
         worldInfoPanel.dispatch_key = dispatchKey
 
         worldInfoPanel.present()
@@ -2079,7 +2159,7 @@ class LevelEditor(GLViewport):
             worldTable.selectedWorldIndex = i
             if evt.num_clicks == 2:
                 loadWorld()
-                d.dismiss("Cancel")
+                dialog.dismiss("Cancel")
 
         def dispatch_key(name, evt):
             if name != "key_down":
@@ -2432,6 +2512,7 @@ class LevelEditor(GLViewport):
     averageCPS = 0.0
     shouldLoadAndRender = True
     showWorkInfo = False
+    
 
     def gl_draw(self):
         self.debugString = ""
@@ -2442,7 +2523,7 @@ class LevelEditor(GLViewport):
 
         if not self.shouldLoadAndRender:
             return
-
+        
         self.renderer.loadVisibleChunks()
         self.addWorker(self.renderer)
 
@@ -3074,3 +3155,21 @@ class EditorToolbar(GLOrtho):
             GL.glDrawArrays(GL.GL_QUADS, 0, cursor / 2)
 
         GL.glDisable(GL.GL_BLEND)
+        
+from albow.resource import get_image
+        
+class LogFilter(logging.Filter):
+    
+    def __init__(self, editor):
+        self.level = logging.WARNING
+        self.editor = editor
+        
+    def filter(self, record):
+        message = record.getMessage()
+        if "Session lock lost. This world is being accessed from another location." in message:
+            self.editor.sessionLockLock.set_image(get_image(os.path.join("toolicons", "session_bad.png"), prefix=""))
+            self.editor.sessionLockLock.tooltipText = "Session Lock is being used by Minecraft"
+        if "Re-acquired session lock" in message:
+            self.editor.sessionLockLock.set_image(get_image(os.path.join("toolicons", "session_good.png"), prefix=""))
+            self.editor.sessionLockLock.tooltipText = "Session Lock is being used by MCEdit"
+            self.editor.root.sessionStolen = False

@@ -121,6 +121,7 @@ class RootWidget(Widget):
         self.nudge = None
         self.testTime = None
         self.nudgeDirection = None
+        self.sessionStolen = False
 
     def get_nudge_block(self):
         return self.selectTool.panel.nudgeBlocksButton
@@ -229,7 +230,7 @@ class RootWidget(Widget):
                     #events = [pygame.event.wait()]
                     events = [pygame.event.poll()]
                     events.extend(pygame.event.get())
-                    
+
                     for event in events:
                         #if event.type:
                         #log.debug("%s", event)
@@ -310,7 +311,10 @@ class RootWidget(Widget):
                             set_modifier(key, False)
                             add_modifiers(event)
                             self.bonus_draw_time = 0
-                            if self.nudgeDirection != None:
+                            keyname = self.getKey(event)
+                            if keyname == config.keys.showBlockInfo.get() and self.editor.toolbar.tools[0].infoKey == 1:
+                                self.editor.toolbar.tools[0].infoKey = 0
+                            if self.nudgeDirection is not None:
                                 keyname = self.getKey(movement=True, keyname=pygame.key.name(key))
                                 for i, key in enumerate(self.editor.movements):
                                     if keyname == key and i == self.nudgeDirection:
@@ -349,22 +353,32 @@ class RootWidget(Widget):
                             add_modifiers(event)
                             self.call_idle_handlers(event)
 
-                    allKeys = pygame.key.get_pressed()
-                    self.editor.cameraInputs = [0., 0., 0., 0., 0., 0.]
-                    self.editor.cameraPanKeys = [0., 0., 0., 0.]
-                    for i, keys in enumerate(allKeys):
-                        if keys:
+                    if not self.sessionStolen:
+                        try:
+                            self.editor.level.checkSessionLock()
+                        except Exception, e:
+                            log.warn(u"Error reading chunk: %s", e)
+                            self.sessionStolen = True
+
+                    if self.editor.level is not None:
+                        self.editor.cameraInputs = [0., 0., 0., 0., 0., 0.]
+                        self.editor.cameraPanKeys = [0., 0., 0., 0.]
+                        allKeys = pygame.key.get_pressed()
+                        allKeysWithData = enumerate(allKeys)
+
+                        def useKeys((i, keys)):
+                            if not keys:
+                                return
                             keyName = self.getKey(movement=True, keyname=pygame.key.name(i))
                             if self.editor.level:
                                 for j, key in enumerate(self.editor.movements):
-                                    if keyName == key:
-                                        if not allKeys[pygame.K_LCTRL] and not allKeys[pygame.K_RCTRL] and not allKeys[pygame.K_RMETA] and not allKeys[pygame.K_LMETA]:
-                                            self.changeMovementKeys(j, keyName)
+                                    if keyName == key and not allKeys[pygame.K_LCTRL] and not allKeys[pygame.K_RCTRL] and not allKeys[pygame.K_RMETA] and not allKeys[pygame.K_LMETA]:
+                                        self.changeMovementKeys(j, keyName)
 
                                 for k, key in enumerate(self.editor.cameraPan):
-                                    if keyName == key:
-                                        if not allKeys[pygame.K_LCTRL] and not allKeys[pygame.K_RCTRL] and not allKeys[pygame.K_RMETA] and not allKeys[pygame.K_LMETA]:
-                                            self.changeCameraKeys(k)
+                                    if keyName == key and not allKeys[pygame.K_LCTRL] and not allKeys[pygame.K_RCTRL] and not allKeys[pygame.K_RMETA] and not allKeys[pygame.K_LMETA]:
+                                        self.changeCameraKeys(k)
+                        map(useKeys, allKeysWithData)
 
                 except Cancel:
                     pass
@@ -408,7 +422,7 @@ class RootWidget(Widget):
     def changeMovementKeys(self, keyNum, keyname):
         if self.editor.level is not None and not self.notMove:
             self.editor.cameraInputs[self.movementNum[keyNum]] += self.movementMath[keyNum]
-        elif self.notMove and self.nudge is not None and (self.testTime is None or datetime.now() - self.testTime >= timedelta(seconds = 0.325)):
+        elif self.notMove and self.nudge is not None and (self.testTime is None or datetime.now() - self.testTime >= timedelta(seconds=0.325)):
             self.testTime = datetime.now()
             if keyname == self.editor.movements[4]:
                 self.nudge.nudge(Vector(0, 1, 0))
@@ -547,7 +561,7 @@ class RootWidget(Widget):
 
     def gl_clear(self):
         from OpenGL import GL
-
+        
         bg = self.bg_color
         if bg:
             r = bg[0] / 255.0
