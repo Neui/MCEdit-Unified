@@ -1063,11 +1063,11 @@ t501 Spieler:
 o502 Goto
 t502 Gehe zu
 o503 Goto View
-t503 
+t503 Gehe zu Sicht
 o504 Move
 t504 Bewege
 o505 Align to Camera
-t505 
+t505 Der Kamera anpassen
 o506 Player
 t506 Spieler
 o507 Chunk Control
@@ -1715,14 +1715,14 @@ t795 Kompassgroße (%):
 o796 Fog Intensity (%): 
 t796 Nebelstärke (%): 
 o797 Toggle compass
-t797 
+t797 Kompass umschalten
 o798 Width of blocks movement: 
 t798 
 o799 Width of selection movement: 
 t799 
 o800 Import
-t800 
+t800 Importiere
 o801 Old (Messy)
-t801 
+t801 Alt (chaotisch)
 o802 Click to open filters folder
-t802 
+t802 Klicke um den Filter Order zu öffnen
