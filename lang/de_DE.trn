@@ -724,7 +724,8 @@ o343 Trade
 t343 Handel
 o344       Rotate the Position of your Trader
 *Can only be used if Not Move is checked*
-t344 
+t344       Rotiere die Position von deinem Händler
+*Kann nur benutzt werden wenn "Unbeweglicher Dorfbewohner" angewählt ist*
 o345 Y-Axis
 t345 Y-Achse
 o346 Changes its body rotation. Due west is 0. Must be between -180 to 180 degrees.
